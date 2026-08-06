@@ -1,0 +1,13 @@
+/* Preview-only styles. Imported solely by design-preview-page.tsx, which is
+   lazy-loaded behind a static import.meta.env.DEV test, so Rollup drops this
+   from production entirely — verified absent from dist/assets. */
+
+/* The page chrome deliberately sits outside the token system: neutral grey so
+   it never competes with the palette being evaluated. */
+.ds-chrome {
+  background: #f2f2f0;
+}
+
+:root.dark .ds-chrome {
+  background: #17171a;
+}

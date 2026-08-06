@@ -3,24 +3,29 @@ import { Badge } from '@/components/ui/badge';
 import type { TaskPriority, TaskStatus } from '@/api/types';
 import { PRIORITY_LABELS, STATUS_LABELS } from '@/lib/labels';
 
+/**
+ * The two axes are styled deliberately differently — priority is a solid
+ * ladder, status a soft tint — so that a card never reads as one signal.
+ */
+
 const STATUS_STYLES: Record<TaskStatus, string> = {
-  scheduled: 'bg-muted text-muted-foreground',
-  reminding: 'bg-amber-500/15 text-amber-600 dark:text-amber-400',
-  snoozed: 'bg-sky-500/15 text-sky-600 dark:text-sky-400',
-  acknowledged: 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400',
-  missed: 'bg-red-500/15 text-red-600 dark:text-red-400',
+  scheduled: 'bg-status-scheduled text-status-scheduled-foreground',
+  reminding: 'bg-status-reminding text-status-reminding-foreground',
+  snoozed: 'bg-status-snoozed text-status-snoozed-foreground',
+  acknowledged: 'bg-status-ack text-status-ack-foreground',
+  missed: 'bg-status-missed text-status-missed-foreground',
 };
 
-const PRIORITY_STYLES: Record<TaskPriority, string> = {
-  normal: 'text-muted-foreground',
-  important: 'text-amber-600 dark:text-amber-400',
-  urgent: 'text-red-600 dark:text-red-400',
+const PRIORITY_PILL_STYLES: Record<TaskPriority, string> = {
+  normal: 'bg-prio-normal text-prio-normal-foreground',
+  important: 'bg-prio-important text-prio-important-foreground',
+  urgent: 'bg-prio-urgent text-prio-urgent-foreground',
 };
 
 export const PRIORITY_ACCENT: Record<TaskPriority, string> = {
-  normal: 'bg-muted-foreground/30',
-  important: 'bg-amber-500',
-  urgent: 'bg-red-500',
+  normal: 'bg-prio-normal',
+  important: 'bg-prio-important',
+  urgent: 'bg-prio-urgent',
 };
 
 export function StatusBadge({ status }: { status: TaskStatus }) {
@@ -31,10 +36,16 @@ export function StatusBadge({ status }: { status: TaskStatus }) {
   );
 }
 
-export function PriorityLabel({ priority }: { priority: TaskPriority }) {
+/** Priority as a solid pill on the nag-frequency ladder. */
+export function PriorityPill({ priority }: { priority: TaskPriority }) {
   return (
-    <span className={cn('text-xs font-medium', PRIORITY_STYLES[priority])}>
+    <Badge
+      className={cn(
+        'border-0 font-semibold tracking-tight',
+        PRIORITY_PILL_STYLES[priority],
+      )}
+    >
       {PRIORITY_LABELS[priority]}
-    </span>
+    </Badge>
   );
 }

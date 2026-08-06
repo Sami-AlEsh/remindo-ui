@@ -107,7 +107,7 @@ export function TasksPage() {
       {awaiting.length > 0 && (
         <section className="flex flex-col gap-3">
           <h2 className="flex items-center gap-2 text-sm font-medium">
-            <BellRing className="size-4 text-amber-500" />
+            <BellRing className="text-prio-important size-4" />
             Needs your attention
             <span className="text-muted-foreground font-normal">
               ({awaiting.length})
@@ -117,6 +117,7 @@ export function TasksPage() {
             <TaskCard
               key={task.id}
               task={task}
+              attention
               actionPending={actionPending}
               {...cardHandlers}
             />

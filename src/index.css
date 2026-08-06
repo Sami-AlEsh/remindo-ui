@@ -8,23 +8,12 @@
 @theme inline {
     --font-heading: var(--font-sans);
     --font-sans: 'Geist Variable', sans-serif;
-    --color-sidebar-ring: var(--sidebar-ring);
-    --color-sidebar-border: var(--sidebar-border);
-    --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-    --color-sidebar-accent: var(--sidebar-accent);
-    --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-    --color-sidebar-primary: var(--sidebar-primary);
-    --color-sidebar-foreground: var(--sidebar-foreground);
-    --color-sidebar: var(--sidebar);
-    --color-chart-5: var(--chart-5);
-    --color-chart-4: var(--chart-4);
-    --color-chart-3: var(--chart-3);
-    --color-chart-2: var(--chart-2);
-    --color-chart-1: var(--chart-1);
+
     --color-ring: var(--ring);
     --color-input: var(--input);
     --color-border: var(--border);
     --color-destructive: var(--destructive);
+    --color-destructive-foreground: var(--destructive-foreground);
     --color-accent-foreground: var(--accent-foreground);
     --color-accent: var(--accent);
     --color-muted-foreground: var(--muted-foreground);
@@ -39,6 +28,28 @@
     --color-card: var(--card);
     --color-foreground: var(--foreground);
     --color-background: var(--background);
+
+    /* Axis 1 — priority (nag frequency). Rendered as solid pills, so each
+       tier carries its own foreground: ochre needs ink, the others take bone. */
+    --color-prio-normal: var(--prio-normal);
+    --color-prio-normal-foreground: var(--prio-normal-foreground);
+    --color-prio-important: var(--prio-important);
+    --color-prio-important-foreground: var(--prio-important-foreground);
+    --color-prio-urgent: var(--prio-urgent);
+    --color-prio-urgent-foreground: var(--prio-urgent-foreground);
+
+    /* Axis 2 — lifecycle status. Soft tinted pills. */
+    --color-status-scheduled: var(--status-scheduled-bg);
+    --color-status-scheduled-foreground: var(--status-scheduled-fg);
+    --color-status-reminding: var(--status-reminding-bg);
+    --color-status-reminding-foreground: var(--status-reminding-fg);
+    --color-status-snoozed: var(--status-snoozed-bg);
+    --color-status-snoozed-foreground: var(--status-snoozed-fg);
+    --color-status-ack: var(--status-ack-bg);
+    --color-status-ack-foreground: var(--status-ack-fg);
+    --color-status-missed: var(--status-missed-bg);
+    --color-status-missed-foreground: var(--status-missed-fg);
+
     --radius-sm: calc(var(--radius) * 0.6);
     --radius-md: calc(var(--radius) * 0.8);
     --radius-lg: var(--radius);
@@ -48,73 +59,128 @@
     --radius-4xl: calc(var(--radius) * 2.6);
 }
 
+/* Direction A — Warm Botanical.
+   Contrast-corrected against WCAG AA; see the notes on --destructive and
+   --prio-important, which are the two values that moved from the source spec. */
 :root {
-    --background: oklch(1 0 0);
-    --foreground: oklch(0.145 0 0);
-    --card: oklch(1 0 0);
-    --card-foreground: oklch(0.145 0 0);
-    --popover: oklch(1 0 0);
-    --popover-foreground: oklch(0.145 0 0);
-    --primary: oklch(0.205 0 0);
-    --primary-foreground: oklch(0.985 0 0);
-    --secondary: oklch(0.97 0 0);
-    --secondary-foreground: oklch(0.205 0 0);
-    --muted: oklch(0.97 0 0);
-    --muted-foreground: oklch(0.556 0 0);
-    --accent: oklch(0.97 0 0);
-    --accent-foreground: oklch(0.205 0 0);
-    --destructive: oklch(0.577 0.245 27.325);
-    --border: oklch(0.922 0 0);
-    --input: oklch(0.922 0 0);
-    --ring: oklch(0.708 0 0);
-    --chart-1: oklch(0.87 0 0);
-    --chart-2: oklch(0.556 0 0);
-    --chart-3: oklch(0.439 0 0);
-    --chart-4: oklch(0.371 0 0);
-    --chart-5: oklch(0.269 0 0);
-    --radius: 0.625rem;
-    --sidebar: oklch(0.985 0 0);
-    --sidebar-foreground: oklch(0.145 0 0);
-    --sidebar-primary: oklch(0.205 0 0);
-    --sidebar-primary-foreground: oklch(0.985 0 0);
-    --sidebar-accent: oklch(0.97 0 0);
-    --sidebar-accent-foreground: oklch(0.205 0 0);
-    --sidebar-border: oklch(0.922 0 0);
-    --sidebar-ring: oklch(0.708 0 0);
+    /* Bone Canvas, pushed back from the card so cards read as objects.
+       The spec's 0.985 left a ΔL of 0.013 against --card, which is below the
+       perceptual threshold for large adjacent surfaces; 0.955 gives 0.043. */
+    --background: oklch(0.955 0.012 115);
+    --foreground: oklch(0.24 0.025 150);       /* Deep Forest Slate */
+
+    --card: oklch(0.998 0.003 115);
+    --card-foreground: oklch(0.24 0.025 150);
+
+    --popover: oklch(0.998 0.003 115);
+    --popover-foreground: oklch(0.24 0.025 150);
+
+    --primary: oklch(0.42 0.09 155);           /* Forest Sage */
+    --primary-foreground: oklch(0.985 0.008 115);
+
+    --secondary: oklch(0.94 0.02 145);
+    --secondary-foreground: oklch(0.32 0.06 155);
+
+    --muted: oklch(0.95 0.01 130);
+    --muted-foreground: oklch(0.52 0.02 140);
+
+    --accent: oklch(0.92 0.03 145);
+    --accent-foreground: oklch(0.28 0.07 155);
+
+    /* Terracotta Clay. Spec had L 0.58, which put bone-on-clay at 4.44:1 —
+       just under AA. L 0.57 clears it at 4.63:1. */
+    --destructive: oklch(0.57 0.16 28);
+    --destructive-foreground: oklch(0.985 0.008 115);
+
+    --border: oklch(0.90 0.015 140);
+    --input: oklch(0.90 0.015 140);
+    --ring: oklch(0.42 0.09 155);
+
+    --radius: 0.85rem;
+
+    /* Axis 1 — priority ladder */
+    --prio-normal: oklch(0.55 0.04 150);       /* Subtle Moss */
+    --prio-normal-foreground: oklch(0.985 0.008 115);
+    /* Warm Ochre. Spec had L 0.68 with white text at 2.94:1 — the worst miss
+       in the palette. L 0.66 with ink text reads 5.19:1, and keeps the bar
+       itself above 3:1 against the card. The hue and chroma are untouched. */
+    --prio-important: oklch(0.66 0.13 75);
+    --prio-important-foreground: oklch(0.24 0.025 150);
+    --prio-urgent: oklch(0.58 0.16 28);
+    --prio-urgent-foreground: oklch(0.985 0.008 115);
+
+    /* Axis 2 — lifecycle status */
+    --status-scheduled-bg: oklch(0.96 0.01 140);
+    --status-scheduled-fg: oklch(0.45 0.03 140);
+
+    --status-reminding-bg: oklch(0.93 0.05 85);
+    --status-reminding-fg: oklch(0.40 0.10 65);
+
+    --status-snoozed-bg: oklch(0.94 0.03 230);
+    --status-snoozed-fg: oklch(0.38 0.08 230);
+
+    --status-ack-bg: oklch(0.94 0.04 155);
+    --status-ack-fg: oklch(0.32 0.08 155);
+
+    /* Missed is a gentle earth tint, deliberately not destructive red —
+       a missed commitment is not a system error. */
+    --status-missed-bg: oklch(0.94 0.02 30);
+    --status-missed-fg: oklch(0.48 0.05 30);
 }
 
 .dark {
-    --background: oklch(0.145 0 0);
-    --foreground: oklch(0.985 0 0);
-    --card: oklch(0.205 0 0);
-    --card-foreground: oklch(0.985 0 0);
-    --popover: oklch(0.205 0 0);
-    --popover-foreground: oklch(0.985 0 0);
-    --primary: oklch(0.922 0 0);
-    --primary-foreground: oklch(0.205 0 0);
-    --secondary: oklch(0.269 0 0);
-    --secondary-foreground: oklch(0.985 0 0);
-    --muted: oklch(0.269 0 0);
-    --muted-foreground: oklch(0.708 0 0);
-    --accent: oklch(0.269 0 0);
-    --accent-foreground: oklch(0.985 0 0);
-    --destructive: oklch(0.704 0.191 22.216);
-    --border: oklch(1 0 0 / 10%);
-    --input: oklch(1 0 0 / 15%);
-    --ring: oklch(0.556 0 0);
-    --chart-1: oklch(0.87 0 0);
-    --chart-2: oklch(0.556 0 0);
-    --chart-3: oklch(0.439 0 0);
-    --chart-4: oklch(0.371 0 0);
-    --chart-5: oklch(0.269 0 0);
-    --sidebar: oklch(0.205 0 0);
-    --sidebar-foreground: oklch(0.985 0 0);
-    --sidebar-primary: oklch(0.488 0.243 264.376);
-    --sidebar-primary-foreground: oklch(0.985 0 0);
-    --sidebar-accent: oklch(0.269 0 0);
-    --sidebar-accent-foreground: oklch(0.985 0 0);
-    --sidebar-border: oklch(1 0 0 / 10%);
-    --sidebar-ring: oklch(0.556 0 0);
+    /* Same lift, mirrored: ΔL between card and page goes 0.04 -> 0.09. */
+    --background: oklch(0.145 0.016 150);      /* Deep Moss Slate */
+    --foreground: oklch(0.93 0.01 130);        /* Light Sage Ivory */
+
+    --card: oklch(0.235 0.022 150);
+    --card-foreground: oklch(0.93 0.01 130);
+
+    --popover: oklch(0.22 0.02 150);
+    --popover-foreground: oklch(0.93 0.01 130);
+
+    --primary: oklch(0.68 0.11 150);           /* Soft Emerald Sage */
+    --primary-foreground: oklch(0.18 0.018 150);
+
+    --secondary: oklch(0.28 0.025 150);
+    --secondary-foreground: oklch(0.85 0.03 145);
+
+    --muted: oklch(0.26 0.02 140);
+    --muted-foreground: oklch(0.65 0.02 140);
+
+    --accent: oklch(0.32 0.035 150);
+    --accent-foreground: oklch(0.93 0.01 130);
+
+    --destructive: oklch(0.65 0.16 28);
+    --destructive-foreground: oklch(0.18 0.018 150);
+
+    --border: oklch(0.28 0.02 140);
+    --input: oklch(0.28 0.02 140);
+    --ring: oklch(0.68 0.11 150);
+
+    /* Axis 1 — every tier is light enough here to take ink text. */
+    --prio-normal: oklch(0.65 0.04 150);
+    --prio-normal-foreground: oklch(0.18 0.018 150);
+    --prio-important: oklch(0.75 0.13 75);
+    --prio-important-foreground: oklch(0.18 0.018 150);
+    --prio-urgent: oklch(0.68 0.16 28);
+    --prio-urgent-foreground: oklch(0.18 0.018 150);
+
+    /* Axis 2 */
+    --status-scheduled-bg: oklch(0.26 0.02 140);
+    --status-scheduled-fg: oklch(0.75 0.03 140);
+
+    --status-reminding-bg: oklch(0.28 0.06 75);
+    --status-reminding-fg: oklch(0.88 0.11 75);
+
+    --status-snoozed-bg: oklch(0.26 0.05 230);
+    --status-snoozed-fg: oklch(0.82 0.08 230);
+
+    --status-ack-bg: oklch(0.26 0.05 155);
+    --status-ack-fg: oklch(0.82 0.09 155);
+
+    --status-missed-bg: oklch(0.26 0.03 30);
+    --status-missed-fg: oklch(0.78 0.05 30);
 }
 
 @layer base {
@@ -128,3 +194,8 @@
     @apply font-sans;
     }
 }
+
+/* No attention-band animation. The spec's looping pulse was tested and proved
+   imperceptible — a 12% opacity dip over 4s reads as nothing, so it cost a
+   compositor layer and bought no signal. The 2px urgent border and the pinned
+   section carry the escalation state instead. */
