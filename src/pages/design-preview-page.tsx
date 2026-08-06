@@ -1,12 +1,20 @@
 import type { ReactNode } from 'react';
-import { BellRing } from 'lucide-react';
+import { BellRing, Check, Link2, Unlink } from 'lucide-react';
+import { toast } from 'sonner';
 
 import './design-preview.css';
 
 import { cn } from '@/lib/utils';
 import type { Task, TaskPriority, TaskStatus } from '@/api/types';
 import { TASK_PRIORITIES, TASK_STATUSES } from '@/api/types';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import {
+  Card,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
 import { TaskCard } from '@/features/tasks/task-card';
 import { PriorityPill, StatusBadge } from '@/features/tasks/task-badges';
 
@@ -257,6 +265,130 @@ export function DesignPreviewPage() {
 
         <Section
           n="3"
+          title="Attention band"
+          note="Spec Component A. The panel marks the pinned escalation area; the heavy 2px card border is reserved for genuinely urgent tasks so the two treatments don't cancel out."
+        >
+          <ThemePair>
+            <section className="border-prio-urgent/30 bg-prio-urgent/5 flex flex-col gap-3 rounded-xl border p-4">
+              <h2 className="flex items-center gap-2 text-sm font-semibold">
+                <BellRing className="text-prio-urgent size-4" />
+                Needs your attention
+                <span className="text-muted-foreground font-normal">(2)</span>
+              </h2>
+              <TaskCard
+                task={SCENARIOS[0].task}
+                attention
+                onEdit={noop}
+                onDelete={noop}
+                onConfirm={noop}
+                onSnooze={noop}
+              />
+              <TaskCard
+                task={SCENARIOS[1].task}
+                onEdit={noop}
+                onDelete={noop}
+                onConfirm={noop}
+                onSnooze={noop}
+              />
+            </section>
+          </ThemePair>
+        </Section>
+
+        <Section
+          n="4"
+          title="Platform cards"
+          note="Spec Component C. Linked reads as a live connection; an adapter that doesn't exist yet recedes rather than inviting a click that goes nowhere."
+        >
+          <ThemePair>
+            <div className="flex flex-col gap-3">
+              <Card className="border-status-ack-foreground/40 bg-status-ack/20">
+                <CardHeader>
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <CardTitle className="flex items-center gap-2 text-base">
+                        Telegram
+                        <Badge className="bg-status-ack text-status-ack-foreground border-0">
+                          <Check className="size-3" />
+                          Linked
+                        </Badge>
+                      </CardTitle>
+                      <CardDescription>
+                        Reminders are delivered here.
+                      </CardDescription>
+                    </div>
+                    <Button size="sm" variant="outline">
+                      <Unlink className="size-4" />
+                      Unlink
+                    </Button>
+                  </div>
+                </CardHeader>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <CardTitle className="text-base">WhatsApp</CardTitle>
+                      <CardDescription>Not linked yet.</CardDescription>
+                    </div>
+                    <Button size="sm">
+                      <Link2 className="size-4" />
+                      Link
+                    </Button>
+                  </div>
+                </CardHeader>
+              </Card>
+
+              <Card className="opacity-60">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-base">
+                    SMS
+                    <Badge variant="outline">Coming later</Badge>
+                  </CardTitle>
+                  <CardDescription>
+                    No adapter for this platform yet.
+                  </CardDescription>
+                </CardHeader>
+              </Card>
+            </div>
+          </ThemePair>
+        </Section>
+
+        <Section
+          n="5"
+          title="Toasts"
+          note="sonner's richColors are remapped onto the lifecycle tokens, so a success toast matches the acknowledged card that triggered it instead of shipping sonner's own emerald."
+        >
+          <div className="flex flex-wrap gap-2">
+            <Button size="sm" onClick={() => toast.success('Task confirmed')}>
+              Success
+            </Button>
+            <Button
+              size="sm"
+              variant="destructive"
+              onClick={() => toast.error('Could not reach the server')}
+            >
+              Error
+            </Button>
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={() => toast.warning('Reminder escalating — attempt 2')}
+            >
+              Warning
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => toast.info('Snoozed for 20 minutes')}
+            >
+              Info
+            </Button>
+          </div>
+        </Section>
+
+        <Section
+          n="6"
           title="Badges and controls"
           note="Sanity check that no two statuses collapse into each other and that every state carries a word, not just a colour."
         >

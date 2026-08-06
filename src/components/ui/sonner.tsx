@@ -34,6 +34,21 @@ const Toaster = ({ ...props }: ToasterProps) => {
           "--normal-text": "var(--popover-foreground)",
           "--normal-border": "var(--border)",
           "--border-radius": "var(--radius)",
+          // richColors otherwise ships sonner's own emerald/red, which are the
+          // only colours left in the app that aren't ours. Point them at the
+          // lifecycle tokens so a toast matches the card it came from.
+          "--success-bg": "var(--status-ack-bg)",
+          "--success-text": "var(--status-ack-fg)",
+          "--success-border": "var(--status-ack-fg)",
+          "--error-bg": "var(--destructive-subtle-bg)",
+          "--error-text": "var(--destructive-subtle-fg)",
+          "--error-border": "var(--destructive-subtle-fg)",
+          "--warning-bg": "var(--status-reminding-bg)",
+          "--warning-text": "var(--status-reminding-fg)",
+          "--warning-border": "var(--status-reminding-fg)",
+          "--info-bg": "var(--status-snoozed-bg)",
+          "--info-text": "var(--status-snoozed-fg)",
+          "--info-border": "var(--status-snoozed-fg)",
         } as React.CSSProperties
       }
       toastOptions={{

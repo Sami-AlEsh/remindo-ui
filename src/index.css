@@ -49,6 +49,8 @@
     --color-status-ack-foreground: var(--status-ack-fg);
     --color-status-missed: var(--status-missed-bg);
     --color-status-missed-foreground: var(--status-missed-fg);
+    --color-destructive-subtle: var(--destructive-subtle-bg);
+    --color-destructive-subtle-foreground: var(--destructive-subtle-fg);
 
     --radius-sm: calc(var(--radius) * 0.6);
     --radius-md: calc(var(--radius) * 0.8);
@@ -126,6 +128,12 @@
        a missed commitment is not a system error. */
     --status-missed-bg: oklch(0.94 0.02 30);
     --status-missed-fg: oklch(0.48 0.05 30);
+
+    /* A real failure — a request that did not go through — as opposed to
+       Missed. Sonner's rich toasts map onto this rather than shipping their
+       own red. */
+    --destructive-subtle-bg: oklch(0.94 0.045 28);
+    --destructive-subtle-fg: oklch(0.42 0.14 28);
 }
 
 .dark {
@@ -181,6 +189,9 @@
 
     --status-missed-bg: oklch(0.26 0.03 30);
     --status-missed-fg: oklch(0.78 0.05 30);
+
+    --destructive-subtle-bg: oklch(0.27 0.07 28);
+    --destructive-subtle-fg: oklch(0.85 0.10 28);
 }
 
 @layer base {

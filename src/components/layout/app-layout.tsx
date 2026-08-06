@@ -3,6 +3,7 @@ import { BellRing, LogOut, Plug, Settings } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { ThemeToggle } from '@/components/layout/theme-toggle';
 import { useAuth } from '@/features/auth/auth-context';
 
 const NAV_ITEMS = [
@@ -51,6 +52,7 @@ export function AppLayout() {
 
           <div className="text-muted-foreground ml-auto flex items-center gap-3 text-sm">
             <span className="hidden sm:inline">{user?.email}</span>
+            <ThemeToggle />
             <Button
               variant="ghost"
               size="sm"
