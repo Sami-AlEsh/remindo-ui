@@ -65,10 +65,7 @@
    Contrast-corrected against WCAG AA; see the notes on --destructive and
    --prio-important, which are the two values that moved from the source spec. */
 :root {
-    /* Bone Canvas, pushed back from the card so cards read as objects.
-       The spec's 0.985 left a ΔL of 0.013 against --card, which is below the
-       perceptual threshold for large adjacent surfaces; 0.955 gives 0.043. */
-    --background: oklch(0.955 0.012 115);
+    --background: oklch(0.985 0.008 115);      /* Bone Canvas */
     --foreground: oklch(0.24 0.025 150);       /* Deep Forest Slate */
 
     --card: oklch(0.998 0.003 115);
@@ -137,11 +134,15 @@
 }
 
 .dark {
-    /* Same lift, mirrored: ΔL between card and page goes 0.04 -> 0.09. */
-    --background: oklch(0.145 0.016 150);      /* Deep Moss Slate */
+    /* Sampled from the design-system prototype: page #0c140d (L .180) and
+       card #141d15 (L .219). The hex comments in the source globals.css were
+       inaccurate labels — the prototype renders the oklch as written, so
+       these values are the authority. Do not "lift" them for card/page
+       separation; that reads as near-black. */
+    --background: oklch(0.18 0.018 150);       /* Deep Moss Slate */
     --foreground: oklch(0.93 0.01 130);        /* Light Sage Ivory */
 
-    --card: oklch(0.235 0.022 150);
+    --card: oklch(0.22 0.02 150);
     --card-foreground: oklch(0.93 0.01 130);
 
     --popover: oklch(0.22 0.02 150);
