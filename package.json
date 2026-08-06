@@ -3,12 +3,13 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "packageManager": "pnpm@10.28.2",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "oxlint",
     "preview": "vite preview",
-    "api:types": "npx --yes openapi-typescript@7 ${VITE_API_TARGET:-http://localhost:3000}/docs-json -o src/api/schema.d.ts",
+    "api:types": "pnpm dlx openapi-typescript@7 ${VITE_API_TARGET:-http://localhost:3000}/docs-json -o src/api/schema.d.ts",
     "typecheck": "tsc -b --noEmit"
   },
   "dependencies": {

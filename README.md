@@ -13,18 +13,22 @@ The API must be running first (`npm run start:dev` in the API repo, with Mongo
 and Redis up).
 
 ```bash
-npm install
-npm run dev        # http://localhost:5173
+pnpm install
+pnpm dev           # http://localhost:5173
 ```
 
 Point the dev server at a different API with `VITE_API_TARGET` (see
 `.env.example`).
 
 ```bash
-npm run typecheck  # tsc -b --noEmit
-npm run build      # typecheck + production build
-npm run api:types  # regenerate src/api/schema.d.ts from the live OpenAPI doc
+pnpm typecheck     # tsc -b --noEmit
+pnpm build         # typecheck + production build
+pnpm api:types     # regenerate src/api/schema.d.ts from the live OpenAPI doc
 ```
+
+This repo uses **pnpm** (pinned via `packageManager` in `package.json`); the
+strict `node_modules` layout is deliberate, since shadcn components are copied
+into `src/` and would otherwise be free to import undeclared transitive deps.
 
 ## Two things to know before changing this
 
@@ -59,7 +63,7 @@ src/
 ```
 
 `src/api/schema.d.ts` is generated — edit the API's DTOs and rerun
-`npm run api:types` rather than hand-editing it.
+`pnpm api:types` rather than hand-editing it.
 
 ## Notes on behaviour
 
