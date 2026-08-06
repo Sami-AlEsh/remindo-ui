@@ -1,0 +1,241 @@
+import { useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { BellRing, Inbox, Plug, Plus } from 'lucide-react';
+
+import type { Task, TaskListQuery, TaskPriority, TaskStatus } from '@/api/types';
+import { TASK_PRIORITIES, TASK_STATUSES, isAwaitingAction } from '@/api/types';
+import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { PRIORITY_LABELS, STATUS_LABELS } from '@/lib/labels';
+import { TaskCard } from '@/features/tasks/task-card';
+import { TaskFormDialog } from '@/features/tasks/task-form-dialog';
+import {
+  useDeleteTask,
+  useTaskAction,
+  useTaskList,
+} from '@/features/tasks/use-tasks';
+import { useLinkedPlatforms } from '@/features/platforms/use-platforms';
+
+const ALL = 'all';
+
+export function TasksPage() {
+  const [status, setStatus] = useState<TaskStatus | typeof ALL>(ALL);
+  const [priority, setPriority] = useState<TaskPriority | typeof ALL>(ALL);
+  const [page, setPage] = useState(1);
+  const [formOpen, setFormOpen] = useState(false);
+  const [editing, setEditing] = useState<Task | undefined>();
+
+  const linkedPlatforms = useLinkedPlatforms();
+  const hasLinkedPlatform = linkedPlatforms.length > 0;
+
+  const query: TaskListQuery = useMemo(
+    () => ({
+      page,
+      limit: 20,
+      sortBy: 'dueDate',
+      sortOrder: 'asc',
+      ...(status === ALL ? {} : { status }),
+      ...(priority === ALL ? {} : { priority }),
+    }),
+    [page, status, priority],
+  );
+
+  const { data, isPending } = useTaskList(query);
+  const confirmAction = useTaskAction('confirm');
+  const snoozeAction = useTaskAction('snooze');
+  const deleteTask = useDeleteTask();
+
+  const tasks = data?.items ?? [];
+  const awaiting = tasks.filter(isAwaitingAction);
+  const rest = tasks.filter((task) => !isAwaitingAction(task));
+  const actionPending = confirmAction.isPending || snoozeAction.isPending;
+
+  function openCreate() {
+    setEditing(undefined);
+    setFormOpen(true);
+  }
+
+  function openEdit(task: Task) {
+    setEditing(task);
+    setFormOpen(true);
+  }
+
+  const cardHandlers = {
+    onEdit: openEdit,
+    onDelete: (task: Task) => deleteTask.mutate(task.id),
+    onConfirm: (task: Task) => confirmAction.mutate(task.id),
+    onSnooze: (task: Task) => snoozeAction.mutate(task.id),
+  };
+
+  return (
+    <div className="flex flex-col gap-6">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight">Tasks</h1>
+          <p className="text-muted-foreground text-sm">
+            Remindo keeps nudging you until you confirm.
+          </p>
+        </div>
+        <Button onClick={openCreate} disabled={!hasLinkedPlatform}>
+          <Plus className="size-4" />
+          New task
+        </Button>
+      </div>
+
+      {!hasLinkedPlatform && (
+        <Alert>
+          <Plug className="size-4" />
+          <AlertTitle>Link a platform to get started</AlertTitle>
+          <AlertDescription>
+            Reminders need somewhere to go. Link Telegram and you can start
+            creating tasks.
+            <Button asChild size="sm" className="mt-2 w-fit">
+              <Link to="/platforms">Link Telegram</Link>
+            </Button>
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {awaiting.length > 0 && (
+        <section className="flex flex-col gap-3">
+          <h2 className="flex items-center gap-2 text-sm font-medium">
+            <BellRing className="size-4 text-amber-500" />
+            Needs your attention
+            <span className="text-muted-foreground font-normal">
+              ({awaiting.length})
+            </span>
+          </h2>
+          {awaiting.map((task) => (
+            <TaskCard
+              key={task.id}
+              task={task}
+              actionPending={actionPending}
+              {...cardHandlers}
+            />
+          ))}
+        </section>
+      )}
+
+      <section className="flex flex-col gap-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <h2 className="mr-auto text-sm font-medium">All tasks</h2>
+
+          <Select
+            value={status}
+            onValueChange={(value) => {
+              setStatus(value as TaskStatus | typeof ALL);
+              setPage(1);
+            }}
+          >
+            <SelectTrigger size="sm" className="w-36">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={ALL}>Any status</SelectItem>
+              {TASK_STATUSES.map((value) => (
+                <SelectItem key={value} value={value}>
+                  {STATUS_LABELS[value]}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select
+            value={priority}
+            onValueChange={(value) => {
+              setPriority(value as TaskPriority | typeof ALL);
+              setPage(1);
+            }}
+          >
+            <SelectTrigger size="sm" className="w-36">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={ALL}>Any importance</SelectItem>
+              {TASK_PRIORITIES.map((value) => (
+                <SelectItem key={value} value={value}>
+                  {PRIORITY_LABELS[value]}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {isPending && (
+          <div className="flex flex-col gap-3">
+            <Skeleton className="h-28 w-full" />
+            <Skeleton className="h-28 w-full" />
+          </div>
+        )}
+
+        {!isPending && tasks.length === 0 && (
+          <div className="text-muted-foreground flex flex-col items-center gap-3 rounded-lg border border-dashed py-14 text-center">
+            <Inbox className="size-8" />
+            <div>
+              <p className="text-foreground font-medium">No tasks yet</p>
+              <p className="text-sm">
+                {hasLinkedPlatform
+                  ? 'Create one and Remindo will chase you about it.'
+                  : 'Link a platform first, then create your first task.'}
+              </p>
+            </div>
+            {hasLinkedPlatform && (
+              <Button size="sm" onClick={openCreate}>
+                <Plus className="size-4" />
+                New task
+              </Button>
+            )}
+          </div>
+        )}
+
+        {rest.map((task) => (
+          <TaskCard
+            key={task.id}
+            task={task}
+            actionPending={actionPending}
+            {...cardHandlers}
+          />
+        ))}
+
+        {data && data.meta.totalPages > 1 && (
+          <div className="flex items-center justify-center gap-3 pt-2">
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={page <= 1}
+              onClick={() => setPage((current) => current - 1)}
+            >
+              Previous
+            </Button>
+            <span className="text-muted-foreground text-sm">
+              Page {data.meta.page} of {data.meta.totalPages}
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={page >= data.meta.totalPages}
+              onClick={() => setPage((current) => current + 1)}
+            >
+              Next
+            </Button>
+          </div>
+        )}
+      </section>
+
+      <TaskFormDialog
+        open={formOpen}
+        onOpenChange={setFormOpen}
+        task={editing}
+        linkedPlatforms={linkedPlatforms}
+      />
+    </div>
+  );
+}
