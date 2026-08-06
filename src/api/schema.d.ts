@@ -155,6 +155,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/platforms/email/link": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Send a verification email to start receiving reminders there
+         * @description The address is only linked once the recipient clicks the link, so an address can never be signed up by someone who does not control it.
+         */
+        post: operations["SocialPlatformsController_linkEmail"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/platforms/email/verify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Redeem the token from a verification email
+         * @description Public because the click arrives from a mail client with no session.
+         */
+        post: operations["SocialPlatformsController_verifyEmail"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/platforms/{platform}/link": {
         parameters: {
             query?: never;
@@ -243,6 +283,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/tasks/actions/{token}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Preview the reminder behind an emailed action link
+         * @description Read-only on purpose: mail scanners follow links automatically, so nothing here may change task state.
+         */
+        get: operations["TasksController_previewTokenAction"];
+        put?: never;
+        /** Perform the action behind an emailed link */
+        post: operations["TasksController_performTokenAction"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -300,6 +361,26 @@ export interface components {
             url: string;
             /** Format: date-time */
             expiresAt: string;
+        };
+        LinkEmailDto: {
+            /** @description Address to send reminders to */
+            email: string;
+        };
+        LinkEmailResponseDto: {
+            /** @description Whether the verification email went out */
+            sent: boolean;
+            email: string;
+            /** Format: date-time */
+            expiresAt: string;
+        };
+        VerifyEmailDto: {
+            /** @description Single-use token from the verification email */
+            token: string;
+        };
+        VerifyEmailResponseDto: {
+            /** @enum {string} */
+            outcome: "LINKED" | "ALREADY_LINKED" | "REPLACED_PREVIOUS";
+            email: string;
         };
         CreateTaskDto: {
             title: string;
@@ -365,6 +446,21 @@ export interface components {
         TaskActionResponseDto: {
             /** @enum {string} */
             outcome: "acknowledged" | "snoozed";
+        };
+        TaskActionPreviewDto: {
+            /** @enum {string} */
+            action: "confirm" | "snooze";
+            title: string;
+            content: string;
+            /** @enum {string} */
+            status: "scheduled" | "reminding" | "snoozed" | "acknowledged" | "missed";
+            /** @enum {string} */
+            priority: "normal" | "important" | "urgent";
+            /** Format: date-time */
+            dueDate: string;
+            /** @description False when the reminder has already been handled or moved on */
+            actionable: boolean;
+            reason?: string;
         };
     };
     responses: never;
@@ -674,6 +770,52 @@ export interface operations {
             };
         };
     };
+    SocialPlatformsController_linkEmail: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LinkEmailDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LinkEmailResponseDto"];
+                };
+            };
+        };
+    };
+    SocialPlatformsController_verifyEmail: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VerifyEmailDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VerifyEmailResponseDto"];
+                };
+            };
+        };
+    };
     SocialPlatformsController_unlink: {
         parameters: {
             query?: never;
@@ -834,6 +976,48 @@ export interface operations {
             header?: never;
             path: {
                 taskId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaskActionResponseDto"];
+                };
+            };
+        };
+    };
+    TasksController_previewTokenAction: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaskActionPreviewDto"];
+                };
+            };
+        };
+    };
+    TasksController_performTokenAction: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
             };
             cookie?: never;
         };

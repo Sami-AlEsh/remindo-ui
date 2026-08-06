@@ -2,7 +2,10 @@ import { apiRequest, setAccessToken } from './client';
 import type {
   ChangePasswordInput,
   CreateTaskInput,
+  LinkEmailResponse,
   LinkPlatformResponse,
+  TaskActionPreview,
+  VerifyEmailResponse,
   LoginInput,
   LoginResponse,
   Platform,
@@ -72,6 +75,21 @@ export const platformsApi = {
     });
   },
 
+  linkEmail(email: string): Promise<LinkEmailResponse> {
+    return apiRequest<LinkEmailResponse>('/platforms/email/link', {
+      method: 'POST',
+      body: { email },
+    });
+  },
+
+  verifyEmail(token: string): Promise<VerifyEmailResponse> {
+    return apiRequest<VerifyEmailResponse>('/platforms/email/verify', {
+      method: 'POST',
+      body: { token },
+      anonymous: true,
+    });
+  },
+
   unlink(platform: Platform): Promise<void> {
     return apiRequest<void>(`/platforms/${platform}/link`, {
       method: 'DELETE',
@@ -112,6 +130,20 @@ export const tasksApi = {
   snooze(taskId: string): Promise<{ outcome: string }> {
     return apiRequest<{ outcome: string }>(`/tasks/${taskId}/snooze`, {
       method: 'POST',
+    });
+  },
+
+  /** Reads the reminder behind an emailed link. Never changes state. */
+  previewTokenAction(token: string): Promise<TaskActionPreview> {
+    return apiRequest<TaskActionPreview>(`/tasks/actions/${token}`, {
+      anonymous: true,
+    });
+  },
+
+  performTokenAction(token: string): Promise<{ outcome: string }> {
+    return apiRequest<{ outcome: string }>(`/tasks/actions/${token}`, {
+      method: 'POST',
+      anonymous: true,
     });
   },
 };

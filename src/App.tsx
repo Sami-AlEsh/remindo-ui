@@ -6,6 +6,8 @@ import { AppLayout } from '@/components/layout/app-layout';
 import { RequireAuth } from '@/features/auth/require-auth';
 import { LoginPage } from '@/pages/login-page';
 import { SignUpPage } from '@/pages/sign-up-page';
+import { VerifyEmailPage } from '@/pages/verify-email-page';
+import { ReminderActionPage } from '@/pages/reminder-action-page';
 import { TasksPage } from '@/pages/tasks-page';
 import { PlatformsPage } from '@/pages/platforms-page';
 import { SettingsPage } from '@/pages/settings-page';
@@ -29,6 +31,9 @@ export default function App() {
       <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/signup" element={<SignUpPage />} />
+        {/* Reached from links in emails, so both are public. */}
+        <Route path="/verify-email" element={<VerifyEmailPage />} />
+        <Route path="/r/:token" element={<ReminderActionPage />} />
         {import.meta.env.DEV && (
           <Route
             path="/design"

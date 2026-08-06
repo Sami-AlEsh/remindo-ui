@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Check, Link2, Loader2, Unlink } from 'lucide-react';
 
+import { cn } from '@/lib/utils';
 import type { Platform } from '@/api/types';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -13,6 +14,7 @@ import {
 } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { PLATFORM_LABELS } from '@/lib/labels';
+import { LinkEmailDialog } from '@/features/platforms/link-email-dialog';
 import { LinkTelegramDialog } from '@/features/platforms/link-telegram-dialog';
 import {
   usePlatforms,
@@ -23,6 +25,7 @@ export function PlatformsPage() {
   const { data: platforms, isPending } = usePlatforms();
   const unlink = useUnlinkPlatform();
   const [linkDialogOpen, setLinkDialogOpen] = useState(false);
+  const [emailDialogOpen, setEmailDialogOpen] = useState(false);
 
   function handleUnlink(platform: Platform) {
     unlink.mutate(platform);
@@ -47,14 +50,23 @@ export function PlatformsPage() {
 
       <div className="flex flex-col gap-3">
         {platforms?.map((platform) => (
-          <Card key={platform.platform}>
+          <Card
+            key={platform.platform}
+            className={cn(
+              'transition-colors',
+              // Linked reads as an active connection; unbuilt adapters recede
+              // rather than inviting a click that cannot go anywhere.
+              platform.linked && 'border-status-ack-foreground/40 bg-status-ack/20',
+              !platform.implemented && 'opacity-60',
+            )}
+          >
             <CardHeader>
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <CardTitle className="flex items-center gap-2 text-base">
                     {PLATFORM_LABELS[platform.platform]}
                     {platform.linked && (
-                      <Badge variant="secondary">
+                      <Badge className="bg-status-ack text-status-ack-foreground border-0">
                         <Check className="size-3" />
                         Linked
                       </Badge>
@@ -76,8 +88,11 @@ export function PlatformsPage() {
                   {platform.implemented && !platform.linked && (
                     <Button
                       size="sm"
-                      onClick={() => setLinkDialogOpen(true)}
-                      disabled={platform.platform !== 'telegram'}
+                      onClick={() =>
+                        platform.platform === 'email'
+                          ? setEmailDialogOpen(true)
+                          : setLinkDialogOpen(true)
+                      }
                     >
                       <Link2 className="size-4" />
                       Link
@@ -109,6 +124,10 @@ export function PlatformsPage() {
       <LinkTelegramDialog
         open={linkDialogOpen}
         onOpenChange={setLinkDialogOpen}
+      />
+      <LinkEmailDialog
+        open={emailDialogOpen}
+        onOpenChange={setEmailDialogOpen}
       />
     </div>
   );
