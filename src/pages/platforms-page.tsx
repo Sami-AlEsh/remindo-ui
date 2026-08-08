@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Check, Link2, Loader2, Unlink } from 'lucide-react';
+import { Check, Crown, Link2, Loader2, Unlink } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
 import type { Platform } from '@/api/types';
@@ -16,6 +16,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { PLATFORM_LABELS } from '@/lib/labels';
 import { LinkEmailDialog } from '@/features/platforms/link-email-dialog';
 import { LinkTelegramDialog } from '@/features/platforms/link-telegram-dialog';
+import { UpgradeDialog } from '@/features/billing/upgrade-dialog';
 import {
   usePlatforms,
   useUnlinkPlatform,
@@ -26,6 +27,7 @@ export function PlatformsPage() {
   const unlink = useUnlinkPlatform();
   const [linkDialogOpen, setLinkDialogOpen] = useState(false);
   const [emailDialogOpen, setEmailDialogOpen] = useState(false);
+  const [upgradeOpen, setUpgradeOpen] = useState(false);
 
   function handleUnlink(platform: Platform) {
     unlink.mutate(platform);
@@ -71,6 +73,12 @@ export function PlatformsPage() {
                         Linked
                       </Badge>
                     )}
+                    {platform.implemented && !platform.availableOnPlan && (
+                      <Badge className="bg-primary/10 text-primary border-0">
+                        <Crown className="size-3" />
+                        Pro
+                      </Badge>
+                    )}
                     {!platform.implemented && (
                       <Badge variant="outline">Coming later</Badge>
                     )}
@@ -78,26 +86,39 @@ export function PlatformsPage() {
                   <CardDescription>
                     {platform.linked
                       ? 'Reminders are delivered here.'
-                      : platform.implemented
-                        ? 'Not linked yet.'
-                        : 'No adapter for this platform yet.'}
+                      : !platform.implemented
+                        ? 'No adapter for this platform yet.'
+                        : platform.availableOnPlan
+                          ? 'Not linked yet.'
+                          : 'Included in the Pro plan.'}
                   </CardDescription>
                 </div>
 
                 <CardContent className="p-0">
-                  {platform.implemented && !platform.linked && (
-                    <Button
-                      size="sm"
-                      onClick={() =>
-                        platform.platform === 'email'
-                          ? setEmailDialogOpen(true)
-                          : setLinkDialogOpen(true)
-                      }
-                    >
-                      <Link2 className="size-4" />
-                      Link
-                    </Button>
-                  )}
+                  {platform.implemented &&
+                    !platform.linked &&
+                    !platform.availableOnPlan && (
+                      <Button size="sm" onClick={() => setUpgradeOpen(true)}>
+                        <Crown className="size-4" />
+                        Upgrade
+                      </Button>
+                    )}
+
+                  {platform.implemented &&
+                    !platform.linked &&
+                    platform.availableOnPlan && (
+                      <Button
+                        size="sm"
+                        onClick={() =>
+                          platform.platform === 'email'
+                            ? setEmailDialogOpen(true)
+                            : setLinkDialogOpen(true)
+                        }
+                      >
+                        <Link2 className="size-4" />
+                        Link
+                      </Button>
+                    )}
 
                   {platform.linked && (
                     <Button
@@ -129,6 +150,7 @@ export function PlatformsPage() {
         open={emailDialogOpen}
         onOpenChange={setEmailDialogOpen}
       />
+      <UpgradeDialog open={upgradeOpen} onOpenChange={setUpgradeOpen} />
     </div>
   );
 }

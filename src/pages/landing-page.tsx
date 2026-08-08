@@ -222,7 +222,10 @@ export function LandingPage() {
             </div>
 
             <p className="text-muted-foreground text-xs">
-              Free to use · Links to Telegram in one scan
+              Free for your first 5 reminders ·{' '}
+              <Link to="/pricing" className="hover:text-foreground underline">
+                Pro goes unlimited
+              </Link>
             </p>
           </div>
 
@@ -309,6 +312,28 @@ export function LandingPage() {
               </div>
             </div>
           ))}
+        </div>
+      </Section>
+
+      {/* --------------------------------------------------------- pricing */}
+      <Section className="py-16">
+        <div className="border-primary/40 bg-primary/5 flex flex-col items-center gap-4 rounded-xl border px-6 py-10 text-center sm:flex-row sm:text-left">
+          <div className="flex-1">
+            <h2 className="text-xl font-bold tracking-tight">
+              Free for 5 reminders. Pro for everything else.
+            </h2>
+            <p className="text-muted-foreground mt-1 text-sm leading-relaxed">
+              The free plan covers 5 active reminders on Telegram. Pro unlocks
+              unlimited reminders on every platform — prepaid, never
+              auto-charged.
+            </p>
+          </div>
+          <Button asChild variant="outline" className="shrink-0">
+            <Link to="/pricing">
+              See pricing
+              <ArrowRight className="size-4" />
+            </Link>
+          </Button>
         </div>
       </Section>
 

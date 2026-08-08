@@ -1,9 +1,14 @@
 import { apiRequest, setAccessToken } from './client';
 import type {
+  BillingProduct,
   ChangePasswordInput,
+  CheckoutResponse,
   CreateTaskInput,
   LinkEmailResponse,
   LinkPlatformResponse,
+  PaymentSyncResponse,
+  Product,
+  Subscription,
   TaskActionPreview,
   VerifyEmailResponse,
   LoginInput,
@@ -94,6 +99,30 @@ export const platformsApi = {
     return apiRequest<void>(`/platforms/${platform}/link`, {
       method: 'DELETE',
     });
+  },
+};
+
+export const billingApi = {
+  subscription(): Promise<Subscription> {
+    return apiRequest<Subscription>('/billing/subscription');
+  },
+
+  products(): Promise<Product[]> {
+    return apiRequest<Product[]>('/billing/products', { anonymous: true });
+  },
+
+  checkout(product: BillingProduct): Promise<CheckoutResponse> {
+    return apiRequest<CheckoutResponse>('/billing/checkout', {
+      method: 'POST',
+      body: { product },
+    });
+  },
+
+  syncPayment(paymentId: string): Promise<PaymentSyncResponse> {
+    return apiRequest<PaymentSyncResponse>(
+      `/billing/payments/${paymentId}/sync`,
+      { method: 'POST' },
+    );
   },
 };
 

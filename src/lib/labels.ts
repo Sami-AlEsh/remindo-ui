@@ -1,5 +1,7 @@
 import type {
+  BillingProduct,
   Platform,
+  PlanTier,
   TaskPriority,
   TaskRecurrence,
   TaskStatus,
@@ -34,6 +36,21 @@ export const PLATFORM_LABELS: Record<Platform, string> = {
   email: 'Email',
   sms: 'SMS',
 };
+
+export const PLAN_LABELS: Record<PlanTier, string> = {
+  free: 'Free',
+  pro: 'Pro',
+};
+
+export const PRODUCT_LABELS: Record<BillingProduct, string> = {
+  pro_monthly: 'Monthly',
+  pro_yearly: 'Yearly',
+};
+
+/** Prices arrive in fils (AED minor units, 100 fils = 1 AED). */
+export function formatAed(fils: number): string {
+  return `AED ${(fils / 100).toFixed(2)}`;
+}
 
 /** Escalation policy mirrored from the API's REMINDER_POLICY, for display. */
 export const PRIORITY_POLICY: Record<

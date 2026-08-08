@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { BellRing, Inbox, Plug, Plus } from 'lucide-react';
+import { BellRing, Inbox, PauseCircle, Plug, Plus } from 'lucide-react';
 
 import type { Task, TaskListQuery, TaskPriority, TaskStatus } from '@/api/types';
 import { TASK_PRIORITIES, TASK_STATUSES, isAwaitingAction } from '@/api/types';
@@ -22,7 +22,9 @@ import {
   useTaskAction,
   useTaskList,
 } from '@/features/tasks/use-tasks';
-import { useLinkedPlatforms } from '@/features/platforms/use-platforms';
+import { usePlatforms } from '@/features/platforms/use-platforms';
+import { useSubscription } from '@/features/billing/use-billing';
+import { UpgradeDialog } from '@/features/billing/upgrade-dialog';
 
 const ALL = 'all';
 
@@ -33,8 +35,18 @@ export function TasksPage() {
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<Task | undefined>();
 
-  const linkedPlatforms = useLinkedPlatforms();
+  const [upgradeOpen, setUpgradeOpen] = useState(false);
+
+  const { data: platformStatuses } = usePlatforms();
+  const linkedPlatforms = (platformStatuses ?? [])
+    .filter((p) => p.linked)
+    .map((p) => p.platform);
   const hasLinkedPlatform = linkedPlatforms.length > 0;
+
+  const { data: subscription } = useSubscription();
+  const maxActiveTasks = subscription?.limits.maxActiveTasks ?? null;
+  const activeTasks = subscription?.usage.activeTasks ?? 0;
+  const overCap = maxActiveTasks !== null && activeTasks > maxActiveTasks;
 
   const query: TaskListQuery = useMemo(
     () => ({
@@ -99,6 +111,61 @@ export function TasksPage() {
             creating tasks.
             <Button asChild size="sm" className="mt-2 w-fit">
               <Link to="/platforms">Link Telegram</Link>
+            </Button>
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {maxActiveTasks !== null && (
+        <div className="bg-card flex items-center gap-3 rounded-lg border px-4 py-3">
+          <div className="flex-1">
+            <div className="flex items-baseline justify-between gap-2">
+              <p className="text-sm font-medium tabular-nums">
+                {Math.min(activeTasks, maxActiveTasks)} of {maxActiveTasks}{' '}
+                free reminders used
+              </p>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-primary h-7"
+                onClick={() => setUpgradeOpen(true)}
+              >
+                Go unlimited
+              </Button>
+            </div>
+            <div
+              className="bg-muted mt-1.5 h-1.5 overflow-hidden rounded-full"
+              role="progressbar"
+              aria-valuenow={Math.min(activeTasks, maxActiveTasks)}
+              aria-valuemax={maxActiveTasks}
+            >
+              <div
+                className="bg-primary h-full rounded-full transition-all"
+                style={{
+                  width: `${Math.min(100, (activeTasks / maxActiveTasks) * 100)}%`,
+                }}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {overCap && (
+        <Alert>
+          <PauseCircle className="size-4" />
+          <AlertTitle>Some reminders are paused</AlertTitle>
+          <AlertDescription>
+            The free plan delivers your {maxActiveTasks} oldest active
+            reminders.{' '}
+            {activeTasks - (maxActiveTasks ?? 0) === 1
+              ? 'One newer reminder is paused and won’t be delivered.'
+              : `${activeTasks - (maxActiveTasks ?? 0)} newer reminders are paused and won’t be delivered.`}
+            <Button
+              size="sm"
+              className="mt-2 w-fit"
+              onClick={() => setUpgradeOpen(true)}
+            >
+              Upgrade to Pro
             </Button>
           </AlertDescription>
         </Alert>
@@ -240,7 +307,10 @@ export function TasksPage() {
         onOpenChange={setFormOpen}
         task={editing}
         linkedPlatforms={linkedPlatforms}
+        platformStatuses={platformStatuses ?? []}
       />
+
+      <UpgradeDialog open={upgradeOpen} onOpenChange={setUpgradeOpen} />
     </div>
   );
 }

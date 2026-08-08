@@ -2,13 +2,14 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useNavigate } from 'react-router-dom';
-import { Loader2 } from 'lucide-react';
+import { Crown, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { z } from 'zod';
 
 import { ApiError } from '@/api/errors';
 import { authApi, usersApi } from '@/api/endpoints';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import {
   Card,
   CardContent,
@@ -18,7 +19,12 @@ import {
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Skeleton } from '@/components/ui/skeleton';
+import { PLAN_LABELS, PRODUCT_LABELS } from '@/lib/labels';
+import { formatLocal, formatRelative } from '@/lib/datetime';
 import { useAuth } from '@/features/auth/auth-context';
+import { useSubscription } from '@/features/billing/use-billing';
+import { UpgradeDialog } from '@/features/billing/upgrade-dialog';
 
 const profileSchema = z.object({
   firstName: z.string().min(2).max(50),
@@ -37,6 +43,84 @@ const passwordSchema = z.object({
 
 type ProfileValues = z.infer<typeof profileSchema>;
 type PasswordValues = z.infer<typeof passwordSchema>;
+
+function BillingCard() {
+  const { data: subscription, isPending } = useSubscription();
+  const [upgradeOpen, setUpgradeOpen] = useState(false);
+
+  const isPro = subscription?.plan === 'pro';
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2 text-base">
+          Plan
+          {subscription && (
+            <Badge
+              className={
+                isPro
+                  ? 'bg-primary/10 text-primary border-primary/30'
+                  : undefined
+              }
+              variant={isPro ? 'default' : 'outline'}
+            >
+              {isPro && <Crown className="size-3" />}
+              {PLAN_LABELS[subscription.plan]}
+            </Badge>
+          )}
+        </CardTitle>
+        <CardDescription>
+          Pro is prepaid — no auto-charge, ever. Renewing stacks time on top
+          of what you already have.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-3">
+        {isPending && <Skeleton className="h-12 w-full" />}
+
+        {subscription && (
+          <div className="text-sm">
+            {isPro && subscription.periodEnd ? (
+              <p>
+                Pro ends{' '}
+                <span className="font-medium">
+                  {formatRelative(subscription.periodEnd)}
+                </span>{' '}
+                <span className="text-muted-foreground tabular-nums">
+                  ({formatLocal(subscription.periodEnd)})
+                </span>
+                {subscription.product && (
+                  <span className="text-muted-foreground">
+                    {' '}
+                    · {PRODUCT_LABELS[subscription.product]}
+                  </span>
+                )}
+              </p>
+            ) : (
+              <p className="text-muted-foreground">
+                {subscription.usage.activeTasks} of{' '}
+                {subscription.limits.maxActiveTasks ?? '∞'} active reminders
+                used · Telegram only. Pro unlocks unlimited reminders on every
+                platform.
+              </p>
+            )}
+          </div>
+        )}
+
+        <Button
+          size="sm"
+          className="w-fit"
+          variant={isPro ? 'outline' : 'default'}
+          onClick={() => setUpgradeOpen(true)}
+        >
+          {!isPro && <Crown className="size-4" />}
+          {isPro ? 'Renew / extend' : 'Upgrade to Pro'}
+        </Button>
+      </CardContent>
+
+      <UpgradeDialog open={upgradeOpen} onOpenChange={setUpgradeOpen} />
+    </Card>
+  );
+}
 
 export function SettingsPage() {
   const { user, refreshUser } = useAuth();
@@ -97,6 +181,8 @@ export function SettingsPage() {
         <h1 className="text-2xl font-semibold tracking-tight">Settings</h1>
         <p className="text-muted-foreground text-sm">{user?.email}</p>
       </div>
+
+      <BillingCard />
 
       <Card>
         <CardHeader>

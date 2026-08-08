@@ -17,6 +17,13 @@ export type LoginInput = Schemas['LogInDto'];
 export type ChangePasswordInput = Schemas['ChangePasswordDto'];
 export type UpdateUserInput = Schemas['UpdateUserDto'];
 
+export type Subscription = Schemas['SubscriptionResponseDto'];
+export type PlanTier = Subscription['plan'];
+export type Product = Schemas['ProductDto'];
+export type BillingProduct = Product['product'];
+export type CheckoutResponse = Schemas['CheckoutResponseDto'];
+export type PaymentSyncResponse = Schemas['PaymentSyncResponseDto'];
+
 export type TaskStatus = Task['status'];
 export type TaskPriority = Task['priority'];
 export type TaskRecurrence = Task['recurrence'];
@@ -73,6 +80,16 @@ export const PLATFORMS = [
   'email',
   'sms',
 ] as const satisfies readonly Platform[];
+
+/** Error codes the API uses for plan-limit refusals. */
+export const PLAN_ERROR_CODES = [
+  'PLAN_LIMIT_REACHED',
+  'PLAN_PLATFORM_LOCKED',
+] as const;
+
+export function isPlanErrorCode(code: string | undefined): boolean {
+  return (PLAN_ERROR_CODES as readonly string[]).includes(code ?? '');
+}
 
 /** Statuses where the user still owes an answer. */
 export const AWAITING_ACTION_STATUSES: readonly TaskStatus[] = [

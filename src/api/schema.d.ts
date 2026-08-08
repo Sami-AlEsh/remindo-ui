@@ -304,6 +304,100 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/billing/subscription": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The user's effective plan, limits, and usage */
+        get: operations["BillingController_getSubscription"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/billing/products": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Purchasable products with prices */
+        get: operations["BillingController_getProducts"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/billing/checkout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Start a Pro purchase; returns the hosted payment page URL
+         * @description Also the renewal path: paying while already Pro stacks the new period on top of the remaining one. There is no auto-billing.
+         */
+        post: operations["BillingController_checkout"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/billing/payments/{paymentId}/sync": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Re-check a payment against Ziina and settle it
+         * @description The return page calls this so payments settle even without a webhook (local dev, or a missed delivery).
+         */
+        post: operations["BillingController_syncPayment"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/billing/webhooks/ziina": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Ziina webhook (HMAC-authenticated)
+         * @description Public because Ziina calls it server-to-server; the HMAC signature over the raw body is the authentication. Throttling is skipped so a 429 never burns one of the 3 delivery retries. No @Body() DTO on purpose: the raw bytes are what the signature covers.
+         */
+        post: operations["BillingController_ziinaWebhook"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -349,6 +443,13 @@ export interface components {
             platform: "telegram" | "whatsapp" | "email" | "sms";
             /** @description Whether Remindo has an adapter for it yet */
             implemented: boolean;
+            /** @description Whether the user's current plan may deliver here */
+            availableOnPlan: boolean;
+            /**
+             * @description The plan that unlocks this platform, when locked
+             * @enum {string}
+             */
+            requiredPlan?: "free" | "pro";
             linked: boolean;
             /** Format: date-time */
             linkedAt?: string;
@@ -418,6 +519,8 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string;
+            /** @description True when the user's plan currently suppresses delivery for this task */
+            deliverySuppressed?: boolean;
         };
         PageMetaDto: {
             page: number;
@@ -461,6 +564,50 @@ export interface components {
             /** @description False when the reminder has already been handled or moved on */
             actionable: boolean;
             reason?: string;
+        };
+        PlanLimitsDto: {
+            /** @description null = unlimited */
+            maxActiveTasks: number | null;
+            platforms: ("telegram" | "whatsapp" | "email" | "sms")[];
+        };
+        SubscriptionUsageDto: {
+            activeTasks: number;
+        };
+        SubscriptionResponseDto: {
+            /** @enum {string} */
+            plan: "free" | "pro";
+            /** Format: date-time */
+            periodEnd: string | null;
+            /** @enum {string|null} */
+            product: "pro_monthly" | "pro_yearly" | null;
+            limits: components["schemas"]["PlanLimitsDto"];
+            usage: components["schemas"]["SubscriptionUsageDto"];
+        };
+        ProductDto: {
+            /** @enum {string} */
+            product: "pro_monthly" | "pro_yearly";
+            /** @description Price in fils (AED minor units) */
+            amountFils: number;
+            currency: string;
+            periodDays: number;
+        };
+        CheckoutDto: {
+            /** @enum {string} */
+            product: "pro_monthly" | "pro_yearly";
+        };
+        CheckoutResponseDto: {
+            paymentId: string;
+            /** @description Ziina's hosted payment page */
+            redirectUrl: string;
+        };
+        PaymentSyncResponseDto: {
+            paymentId: string;
+            /** @enum {string} */
+            status: "pending" | "completed" | "failed" | "canceled";
+            /** @enum {string} */
+            plan: "free" | "pro";
+            /** Format: date-time */
+            periodEnd: string | null;
         };
     };
     responses: never;
@@ -1030,6 +1177,107 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["TaskActionResponseDto"];
                 };
+            };
+        };
+    };
+    BillingController_getSubscription: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SubscriptionResponseDto"];
+                };
+            };
+        };
+    };
+    BillingController_getProducts: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProductDto"][];
+                };
+            };
+        };
+    };
+    BillingController_checkout: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CheckoutDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CheckoutResponseDto"];
+                };
+            };
+        };
+    };
+    BillingController_syncPayment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                paymentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentSyncResponseDto"];
+                };
+            };
+        };
+    };
+    BillingController_ziinaWebhook: {
+        parameters: {
+            query?: never;
+            header: {
+                "x-hmac-signature": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

@@ -2,6 +2,7 @@ import {
   Check,
   Clock,
   MoreHorizontal,
+  PauseCircle,
   Pencil,
   Repeat,
   Send,
@@ -75,6 +76,15 @@ export function TaskCard({
         <div className="flex flex-wrap items-center gap-2">
           <PriorityPill priority={task.priority} />
           <StatusBadge status={task.status} />
+          {task.deliverySuppressed && (
+            <span
+              className="text-muted-foreground flex items-center gap-1 text-xs font-medium"
+              title="Beyond the free plan's limit — this reminder won't be delivered until you upgrade or make room."
+            >
+              <PauseCircle className="size-3.5" />
+              Paused — plan limit
+            </span>
+          )}
           {recurring && (
             <span className="text-muted-foreground flex items-center gap-1.5 text-xs">
               <Repeat className="size-3.5" />

@@ -5,6 +5,8 @@ import { Toaster } from '@/components/ui/sonner';
 import { AppLayout } from '@/components/layout/app-layout';
 import { RequireAuth } from '@/features/auth/require-auth';
 import { LandingPage } from '@/pages/landing-page';
+import { PricingPage } from '@/pages/pricing-page';
+import { BillingReturnPage } from '@/pages/billing-return-page';
 import { LoginPage } from '@/pages/login-page';
 import { SignUpPage } from '@/pages/sign-up-page';
 import { VerifyEmailPage } from '@/pages/verify-email-page';
@@ -31,6 +33,7 @@ export default function App() {
     <>
       <Routes>
         <Route path="/" element={<LandingPage />} />
+        <Route path="/pricing" element={<PricingPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/signup" element={<SignUpPage />} />
         {/* Reached from links in emails, so both are public. */}
@@ -56,6 +59,9 @@ export default function App() {
           <Route path="/tasks" element={<TasksPage />} />
           <Route path="/platforms" element={<PlatformsPage />} />
           <Route path="/settings" element={<SettingsPage />} />
+          {/* Ziina redirects back here; sync needs the session, so it lives
+              behind auth — the refresh cookie survives the round-trip. */}
+          <Route path="/billing/return" element={<BillingReturnPage />} />
         </Route>
         <Route path="*" element={<Navigate to="/tasks" replace />} />
       </Routes>

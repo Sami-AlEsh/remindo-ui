@@ -1,10 +1,10 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Lock } from 'lucide-react';
 import { z } from 'zod';
 
-import type { Platform, Task } from '@/api/types';
+import type { Platform, PlatformStatus, Task } from '@/api/types';
 import { TASK_PRIORITIES, TASK_RECURRENCES } from '@/api/types';
 import { Button } from '@/components/ui/button';
 import {
@@ -37,6 +37,8 @@ import {
   fromDateTimeLocalValue,
   toDateTimeLocalValue,
 } from '@/lib/datetime';
+import { UpgradeDialog } from '@/features/billing/upgrade-dialog';
+import { useSubscription } from '@/features/billing/use-billing';
 import { useCreateTask, useUpdateTask } from './use-tasks';
 
 const taskSchema = z.object({
@@ -57,6 +59,8 @@ interface Props {
   onOpenChange: (open: boolean) => void;
   task?: Task;
   linkedPlatforms: Platform[];
+  /** Full statuses so plan-locked platforms can render as upsells. */
+  platformStatuses: PlatformStatus[];
 }
 
 export function TaskFormDialog({
@@ -64,10 +68,19 @@ export function TaskFormDialog({
   onOpenChange,
   task,
   linkedPlatforms,
+  platformStatuses,
 }: Props) {
   const isEdit = Boolean(task);
   const createTask = useCreateTask();
   const updateTask = useUpdateTask(task?.id ?? '');
+  const { data: subscription } = useSubscription();
+  const [upgradeOpen, setUpgradeOpen] = useState(false);
+
+  const maxActiveTasks = subscription?.limits.maxActiveTasks ?? null;
+  const atCap =
+    !isEdit &&
+    maxActiveTasks !== null &&
+    (subscription?.usage.activeTasks ?? 0) >= maxActiveTasks;
 
   const form = useForm<TaskFormValues>({
     resolver: zodResolver(taskSchema),
@@ -244,20 +257,56 @@ export function TaskFormDialog({
           <div className="flex flex-col gap-2">
             <Label>Deliver to</Label>
             <div className="flex flex-wrap gap-2">
-              {linkedPlatforms.map((platform) => {
-                const selected = selectedPlatforms.includes(platform);
-                return (
-                  <Button
-                    key={platform}
-                    type="button"
-                    size="sm"
-                    variant={selected ? 'default' : 'outline'}
-                    onClick={() => togglePlatform(platform)}
-                  >
-                    {PLATFORM_LABELS[platform]}
-                  </Button>
-                );
-              })}
+              {platformStatuses
+                .filter((status) => status.implemented)
+                .map((status) => {
+                  const { platform } = status;
+                  const selected = selectedPlatforms.includes(platform);
+
+                  if (!status.availableOnPlan) {
+                    return (
+                      <Button
+                        key={platform}
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        className="text-muted-foreground border-dashed"
+                        title="Included in Pro"
+                        onClick={() => setUpgradeOpen(true)}
+                      >
+                        <Lock className="size-3.5" />
+                        {PLATFORM_LABELS[platform]}
+                      </Button>
+                    );
+                  }
+
+                  if (!status.linked) {
+                    return (
+                      <Button
+                        key={platform}
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        disabled
+                        title="Link this platform first (Platforms page)"
+                      >
+                        {PLATFORM_LABELS[platform]}
+                      </Button>
+                    );
+                  }
+
+                  return (
+                    <Button
+                      key={platform}
+                      type="button"
+                      size="sm"
+                      variant={selected ? 'default' : 'outline'}
+                      onClick={() => togglePlatform(platform)}
+                    >
+                      {PLATFORM_LABELS[platform]}
+                    </Button>
+                  );
+                })}
             </div>
             {form.formState.errors.platforms && (
               <p className="text-destructive text-xs">
@@ -265,6 +314,24 @@ export function TaskFormDialog({
               </p>
             )}
           </div>
+
+          {atCap && (
+            <Alert>
+              <Lock className="size-4" />
+              <AlertDescription>
+                You&apos;ve used all {maxActiveTasks} reminders on the free
+                plan. Finish or delete one — or go unlimited with Pro.
+                <Button
+                  type="button"
+                  size="sm"
+                  className="mt-2 w-fit"
+                  onClick={() => setUpgradeOpen(true)}
+                >
+                  Upgrade
+                </Button>
+              </AlertDescription>
+            </Alert>
+          )}
 
           {utcHint && (
             <Alert>
@@ -280,7 +347,10 @@ export function TaskFormDialog({
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={form.formState.isSubmitting}>
+            <Button
+              type="submit"
+              disabled={form.formState.isSubmitting || atCap}
+            >
               {form.formState.isSubmitting && (
                 <Loader2 className="size-4 animate-spin" />
               )}
@@ -289,6 +359,8 @@ export function TaskFormDialog({
           </DialogFooter>
         </form>
       </DialogContent>
+
+      <UpgradeDialog open={upgradeOpen} onOpenChange={setUpgradeOpen} />
     </Dialog>
   );
 }
