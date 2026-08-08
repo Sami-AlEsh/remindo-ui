@@ -1,0 +1,147 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    /* Remindo Direction A: Warm Botanical (Light Mode) */
+    --background: oklch(0.985 0.008 115); /* #f9fbf8 - Bone Canvas */
+    --foreground: oklch(0.24 0.025 150);  /* #1f2a24 - Deep Forest Slate */
+
+    --card: oklch(0.998 0.003 115);        /* #ffffff - Pure Surface */
+    --card-foreground: oklch(0.24 0.025 150);
+
+    --popover: oklch(0.998 0.003 115);
+    --popover-foreground: oklch(0.24 0.025 150);
+
+    --primary: oklch(0.42 0.09 155);       /* #225c43 - Forest Sage */
+    --primary-foreground: oklch(0.985 0.008 115);
+
+    --secondary: oklch(0.94 0.02 145);     /* #e4ede7 - Soft Sage Tint */
+    --secondary-foreground: oklch(0.32 0.06 155);
+
+    --muted: oklch(0.95 0.01 130);         /* #eaedea - Neutral Surface Tint */
+    --muted-foreground: oklch(0.52 0.02 140); /* #636d66 - Muted Slate */
+
+    --accent: oklch(0.92 0.03 145);        /* #d6e6dc - Active Surface */
+    --accent-foreground: oklch(0.28 0.07 155);
+
+    --destructive: oklch(0.58 0.16 28);    /* #c0493b - Terracotta Clay */
+    --destructive-foreground: oklch(0.985 0.008 115);
+
+    --border: oklch(0.90 0.015 140);       /* #dbe2dd - Subtle Botanical Border */
+    --input: oklch(0.90 0.015 140);
+    --ring: oklch(0.42 0.09 155);
+
+    --radius: 0.85rem;
+
+    /* Extra Semantic Tokens - Priority Ladder (Nag Frequency Axis) */
+    --prio-normal: oklch(0.55 0.04 150);    /* Subtle Moss */
+    --prio-important: oklch(0.68 0.13 75);  /* Warm Ochre */
+    --prio-urgent: oklch(0.58 0.16 28);     /* Terracotta Clay */
+
+    /* Extra Semantic Tokens - Task Statuses (Lifecycle Axis) */
+    --status-scheduled-bg: oklch(0.96 0.01 140);
+    --status-scheduled-fg: oklch(0.45 0.03 140);
+
+    --status-reminding-bg: oklch(0.93 0.05 85);
+    --status-reminding-fg: oklch(0.40 0.10 65);
+
+    --status-snoozed-bg: oklch(0.94 0.03 230);
+    --status-snoozed-fg: oklch(0.38 0.08 230);
+
+    --status-ack-bg: oklch(0.94 0.04 155);
+    --status-ack-fg: oklch(0.32 0.08 155);
+
+    --status-missed-bg: oklch(0.94 0.02 30);
+    --status-missed-fg: oklch(0.48 0.05 30);
+  }
+
+  .dark {
+    /* Remindo Direction A: Warm Botanical (Dark Mode) */
+    --background: oklch(0.18 0.018 150);  /* #131916 - Deep Moss Slate */
+    --foreground: oklch(0.93 0.01 130);   /* #e9edea - Light Sage Ivory */
+
+    --card: oklch(0.22 0.02 150);         /* #1a221e - Elevated Dark Card */
+    --card-foreground: oklch(0.93 0.01 130);
+
+    --popover: oklch(0.22 0.02 150);
+    --popover-foreground: oklch(0.93 0.01 130);
+
+    --primary: oklch(0.68 0.11 150);      /* #4fa37d - Soft Emerald Sage */
+    --primary-foreground: oklch(0.18 0.018 150);
+
+    --secondary: oklch(0.28 0.025 150);    /* #24322a */
+    --secondary-foreground: oklch(0.85 0.03 145);
+
+    --muted: oklch(0.26 0.02 140);
+    --muted-foreground: oklch(0.65 0.02 140);
+
+    --accent: oklch(0.32 0.035 150);
+    --accent-foreground: oklch(0.93 0.01 130);
+
+    --destructive: oklch(0.65 0.16 28);   /* Terracotta Clay */
+    --destructive-foreground: oklch(0.18 0.018 150);
+
+    --border: oklch(0.28 0.02 140);
+    --input: oklch(0.28 0.02 140);
+    --ring: oklch(0.68 0.11 150);
+
+    /* Extra Semantic Tokens - Priority Ladder (Dark Mode) */
+    --prio-normal: oklch(0.65 0.04 150);
+    --prio-important: oklch(0.75 0.13 75);
+    --prio-urgent: oklch(0.68 0.16 28);
+
+    /* Extra Semantic Tokens - Task Statuses (Dark Mode) */
+    --status-scheduled-bg: oklch(0.26 0.02 140);
+    --status-scheduled-fg: oklch(0.75 0.03 140);
+
+    --status-reminding-bg: oklch(0.28 0.06 75);
+    --status-reminding-fg: oklch(0.88 0.11 75);
+
+    --status-snoozed-bg: oklch(0.26 0.05 230);
+    --status-snoozed-fg: oklch(0.82 0.08 230);
+
+    --status-ack-bg: oklch(0.26 0.05 155);
+    --status-ack-fg: oklch(0.82 0.09 155);
+
+    --status-missed-bg: oklch(0.26 0.03 30);
+    --status-missed-fg: oklch(0.78 0.05 30);
+  }
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --radius-xl: var(--radius);
+
+  /* Semantic priority mapping */
+  --color-prio-normal: var(--prio-normal);
+  --color-prio-important: var(--prio-important);
+  --color-prio-urgent: var(--prio-urgent);
+}
+
+/* Micro-animations */
+@keyframes subtle-pulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.008); opacity: 0.96; }
+}
+
+.animate-attention-pulse {
+  animation: subtle-pulse 4s ease-in-out infinite;
+}
