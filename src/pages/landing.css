@@ -1,0 +1,128 @@
+/* Landing-page motion. Everything here is inside a no-preference guard, so a
+   visitor with reduced-motion set gets the fully-composed page with no
+   transitions rather than a degraded one — the base styles are the final
+   state, and motion is layered on top. */
+
+@media (prefers-reduced-motion: no-preference) {
+  /* --- scroll reveal ------------------------------------------------ */
+  .reveal {
+    opacity: 0;
+    transform: translateY(22px);
+    transition:
+      opacity 0.75s cubic-bezier(0.16, 1, 0.3, 1),
+      transform 0.75s cubic-bezier(0.16, 1, 0.3, 1);
+    transition-delay: calc(var(--reveal-delay, 0) * 85ms);
+  }
+
+  .reveal.is-visible {
+    opacity: 1;
+    transform: none;
+  }
+
+  /* --- hero entrance ------------------------------------------------ */
+  .rise {
+    animation: rise 0.9s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+    animation-delay: calc(var(--rise-delay, 0) * 90ms);
+  }
+
+  @keyframes rise {
+    from {
+      opacity: 0;
+      transform: translateY(24px);
+    }
+  }
+
+  /* --- ambient glow behind the hero demo ---------------------------- */
+  .aurora::before {
+    animation: aurora 22s ease-in-out infinite alternate;
+  }
+
+  @keyframes aurora {
+    from {
+      transform: translate3d(-4%, -3%, 0) scale(1);
+    }
+    to {
+      transform: translate3d(5%, 4%, 0) scale(1.12);
+    }
+  }
+
+  /* --- the tick that marks each follow-up firing -------------------- */
+  @keyframes ping {
+    0% {
+      transform: scale(0.6);
+      opacity: 0;
+    }
+    45% {
+      transform: scale(1.15);
+      opacity: 1;
+    }
+    100% {
+      transform: scale(1);
+      opacity: 1;
+    }
+  }
+
+  .ping {
+    animation: ping 0.55s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  /* Follow-up "beats" tick in one after another once their tier scrolls
+     into view, so the ladder is felt as a rhythm rather than read as a
+     number. Held with `forwards` — they must not vanish afterwards. */
+  .reveal .beat {
+    opacity: 0;
+  }
+
+  .reveal.is-visible .beat {
+    animation: ping 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    animation-delay: calc(var(--beat, 0) * 150ms + 220ms);
+  }
+
+  /* --- lift on hover ------------------------------------------------ */
+  .lift {
+    transition:
+      transform 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+      border-color 0.35s ease;
+  }
+
+  .lift:hover {
+    transform: translateY(-3px);
+  }
+}
+
+/* The glow itself is not motion, so it renders for everyone. Two offset
+   radial tints in the brand hues, well below any contrast-carrying layer. */
+.aurora {
+  position: relative;
+  isolation: isolate;
+}
+
+.aurora::before {
+  content: '';
+  position: absolute;
+  inset: -35%;
+  z-index: -1;
+  border-radius: 50%;
+  filter: blur(46px);
+  background:
+    radial-gradient(
+      circle at 32% 34%,
+      color-mix(in oklch, var(--primary) 26%, transparent),
+      transparent 62%
+    ),
+    radial-gradient(
+      circle at 70% 66%,
+      color-mix(in oklch, var(--prio-important) 20%, transparent),
+      transparent 58%
+    );
+}
+
+/* Countdown to the next follow-up. Width is driven from React so it stays in
+   step with the escalation state machine rather than drifting on its own. */
+.countdown-fill {
+  transition: width 0.25s linear;
+}
+
+.countdown-fill[data-reset='true'] {
+  transition: none;
+}
