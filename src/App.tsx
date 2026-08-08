@@ -4,6 +4,7 @@ import { Navigate, Route, Routes } from 'react-router-dom';
 import { Toaster } from '@/components/ui/sonner';
 import { AppLayout } from '@/components/layout/app-layout';
 import { RequireAuth } from '@/features/auth/require-auth';
+import { LandingPage } from '@/pages/landing-page';
 import { LoginPage } from '@/pages/login-page';
 import { SignUpPage } from '@/pages/sign-up-page';
 import { VerifyEmailPage } from '@/pages/verify-email-page';
@@ -29,6 +30,7 @@ export default function App() {
   return (
     <>
       <Routes>
+        <Route path="/" element={<LandingPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/signup" element={<SignUpPage />} />
         {/* Reached from links in emails, so both are public. */}
