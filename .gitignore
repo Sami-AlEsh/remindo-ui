@@ -31,3 +31,5 @@ dist-ssr
 # Tool output
 .playwright-mcp
 coverage
+
+*.zip
