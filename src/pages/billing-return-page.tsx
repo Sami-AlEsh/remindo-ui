@@ -1,32 +1,59 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import { CheckCircle2, Loader2, RefreshCw, XCircle } from 'lucide-react';
 
+import { billingApi } from '@/api/endpoints';
+import type { PaymentSyncResponse } from '@/api/types';
 import { Button } from '@/components/ui/button';
 import { formatLocal } from '@/lib/datetime';
-import { useSyncPayment } from '@/features/billing/use-billing';
+import { billingKeys } from '@/features/billing/use-billing';
 
 /**
  * Ziina's hosted page redirects here. The redirect status is only a hint —
  * the sync call re-checks the payment with Ziina server-side and is what
  * actually credits the subscription (local dev has no webhook at all).
+ *
+ * Plain effect + state rather than useMutation: a mutation fired from a
+ * mount effect loses its observer under StrictMode's double-mount and the
+ * page never leaves "pending". Re-running the sync on the second pass is
+ * safe — settling is idempotent by design.
  */
 export function BillingReturnPage() {
   const [params] = useSearchParams();
   const paymentId = params.get('paymentId');
   const redirectStatus = params.get('status');
+  const queryClient = useQueryClient();
 
-  const sync = useSyncPayment();
-  const { mutate: syncPayment } = sync;
-  const fired = useRef(false);
+  const [settled, setSettled] = useState<PaymentSyncResponse | null>(null);
+  const [failed, setFailed] = useState(false);
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
-    if (!paymentId || fired.current) return;
-    fired.current = true;
-    syncPayment(paymentId);
-  }, [paymentId, syncPayment]);
+    if (!paymentId) return;
+    let cancelled = false;
 
-  const settled = sync.data;
+    setSettled(null);
+    setFailed(false);
+    billingApi
+      .syncPayment(paymentId)
+      .then((result) => {
+        if (cancelled) return;
+        setSettled(result);
+        void queryClient.invalidateQueries({
+          queryKey: billingKeys.subscription,
+        });
+      })
+      .catch(() => {
+        if (!cancelled) setFailed(true);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [paymentId, attempt, queryClient]);
+
+  const checking = Boolean(paymentId) && !settled && !failed;
 
   return (
     <div className="mx-auto flex max-w-md flex-col items-center gap-4 py-16 text-center">
@@ -43,7 +70,7 @@ export function BillingReturnPage() {
         </>
       )}
 
-      {paymentId && (sync.isPending || sync.isIdle) && (
+      {checking && (
         <>
           <Loader2 className="text-primary size-10 animate-spin" />
           <h1 className="text-xl font-semibold">Confirming your payment…</h1>
@@ -84,8 +111,7 @@ export function BillingReturnPage() {
           <Button
             size="sm"
             variant="outline"
-            disabled={sync.isPending}
-            onClick={() => sync.mutate(paymentId as string)}
+            onClick={() => setAttempt((n) => n + 1)}
           >
             <RefreshCw className="size-4" />
             Check again
@@ -95,7 +121,7 @@ export function BillingReturnPage() {
 
       {(settled?.status === 'failed' ||
         settled?.status === 'canceled' ||
-        sync.isError) && (
+        failed) && (
         <>
           <XCircle className="text-destructive size-10" />
           <h1 className="text-xl font-semibold">
