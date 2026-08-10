@@ -1,0 +1,30 @@
+# Netlify config for the Remindo SPA.
+#
+# The app is designed same-origin: the client calls relative /api/* paths and
+# auth rides an httpOnly cookie, so the API is reached through Netlify's
+# server-side proxy (generated into dist/_redirects at build time from the
+# API_ORIGIN env var — set it in Site settings → Environment variables to the
+# backend's https origin, e.g. https://api.example.com). Cookies, the Ziina
+# webhook, and emailed action links all stay first-party this way. Keep the
+# API's ZIINA_ENFORCE_IP_ALLOWLIST=false — proxied calls arrive from Netlify
+# IPs, not Ziina's.
+
+[build]
+  command = "pnpm build && node scripts/netlify-redirects.mjs"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "22"
+
+# Vite emits content-hashed filenames under /assets — safe to cache forever.
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Content-Type-Options = "nosniff"
+    X-Frame-Options = "DENY"
+    Referrer-Policy = "strict-origin-when-cross-origin"
