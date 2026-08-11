@@ -17,9 +17,16 @@ if (apiOrigin) {
 } else {
   console.warn(
     '[netlify-redirects] API_ORIGIN is not set — deploying without the /api proxy. ' +
-      'The UI will render but every API call will 404.',
+      'Every API call will 404. Set it in Site settings → Environment variables.',
   );
 }
+
+// Backstop, and it must sit above the SPA fallback. Without it an /api/* call
+// that the proxy did not handle falls through to `/* /index.html 200` and comes
+// back as index.html with a 200 — the client then has a "successful" response
+// whose body is HTML. A clean 404 is something the app can report; a 200 full
+// of HTML is what blanked the pricing page.
+rules.push('/api/* /index.html 404');
 
 rules.push('/* /index.html 200');
 

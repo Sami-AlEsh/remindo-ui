@@ -73,14 +73,48 @@ function buildUrl(path: string, query?: RequestOptions['query']): string {
   return qs ? `${url}?${qs}` : url;
 }
 
-async function parseBody(response: Response): Promise<unknown> {
-  if (response.status === 204) return undefined;
-  const text = await response.text();
-  if (!text) return undefined;
+/**
+ * Tolerant: only ever used to enrich an error that is already being thrown, so
+ * it must not throw itself. A gateway's HTML error page yields no detail
+ * rather than replacing the real status.
+ */
+async function readErrorBody(
+  response: Response,
+): Promise<Record<string, unknown> | undefined> {
   try {
-    return JSON.parse(text);
+    const text = await response.text();
+    if (!text) return undefined;
+    const parsed: unknown = JSON.parse(text);
+    return typeof parsed === 'object' && parsed !== null
+      ? (parsed as Record<string, unknown>)
+      : undefined;
   } catch {
-    return text;
+    return undefined;
+  }
+}
+
+/**
+ * Strict: a 2xx whose body is not JSON is a broken response, not a payload.
+ *
+ * This used to fall back to returning the raw text, which meant a deploy whose
+ * /api/* was not proxied — Netlify answers those with `/* /index.html 200` —
+ * handed index.html back to callers as their data. A string is truthy, so
+ * `products?.find(...)` sailed past the optional chain and threw during
+ * render, blanking the whole site. Failing here turns that into an ordinary
+ * query error the UI already knows how to show.
+ */
+async function readJson<T>(response: Response): Promise<T> {
+  if (response.status === 204) return undefined as T;
+  const text = await response.text();
+  if (!text) return undefined as T;
+  try {
+    return JSON.parse(text) as T;
+  } catch {
+    throw new ApiError(response.status, {
+      code: 'NON_JSON_RESPONSE',
+      message:
+        'The API returned a non-JSON response. Check that /api is proxied to the backend.',
+    });
   }
 }
 
@@ -106,7 +140,8 @@ export async function apiRequest<T>(
   let response = await send(path, options);
 
   if (response.status === 401 && !options.anonymous) {
-    const body = (await parseBody(response)) as { code?: string } | undefined;
+    const body = (await readErrorBody(response)) as
+      { code?: string } | undefined;
 
     if (body?.code === 'TOKEN_EXPIRED' || body?.code === 'TOKEN_MISSING') {
       const refreshed = await refreshSession();
@@ -125,13 +160,10 @@ export async function apiRequest<T>(
   }
 
   if (!response.ok) {
-    throw new ApiError(
-      response.status,
-      (await parseBody(response)) as Record<string, unknown> | undefined,
-    );
+    throw new ApiError(response.status, await readErrorBody(response));
   }
 
-  return (await parseBody(response)) as T;
+  return readJson<T>(response);
 }
 
 /**
