@@ -152,9 +152,33 @@ function framesFor(example: Example): Frame[] {
   return frames;
 }
 
-/** Frozen here when reduced-motion is on: mid-escalation, the telling state. */
-const STILL_EXAMPLE = 0;
+/** Frozen at this frame when reduced-motion is on: mid-escalation, the
+    telling state. The example is still whatever the shuffle dealt first, so a
+    reload varies for those visitors too. */
 const STILL_FRAME = 2;
+
+/** Fisher-Yates, on a copy — EXAMPLES is module state shared across mounts. */
+function shuffle(items: readonly Example[]): Example[] {
+  const out = [...items];
+  for (let i = out.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [out[i], out[j]] = [out[j], out[i]];
+  }
+  return out;
+}
+
+/**
+ * Reshuffles for the next pass, nudging away from opening on whatever just
+ * played. Without this the seam between passes can repeat a task immediately,
+ * which reads as the animation having stalled rather than moved on.
+ */
+function reshuffle(justPlayed: Example): Example[] {
+  const next = shuffle(EXAMPLES);
+  if (next.length > 1 && next[0].title === justPlayed.title) {
+    [next[0], next[next.length - 1]] = [next[next.length - 1], next[0]];
+  }
+  return next;
+}
 
 const STEPS = [
   {
@@ -244,14 +268,17 @@ const PRIO_DOT: Record<TaskPriority, string> = {
 
 function EscalationDemo() {
   const reduced = usePrefersReducedMotion();
-  const [example, setExample] = useState(0);
+  // Lazy initialiser, so the deal happens once per mount rather than on every
+  // render — otherwise the demo would reshuffle under its own feet.
+  const [order, setOrder] = useState<Example[]>(() => shuffle(EXAMPLES));
+  const [index, setIndex] = useState(0);
   const [frame, setFrame] = useState(0);
   const [filled, setFilled] = useState(false);
 
-  const activeExample =
-    EXAMPLES[reduced ? STILL_EXAMPLE : example % EXAMPLES.length];
+  const activeExample = order[reduced ? 0 : index];
   const frames = useMemo(() => framesFor(activeExample), [activeExample]);
-  const current = frames[reduced ? STILL_FRAME : Math.min(frame, frames.length - 1)];
+  const current =
+    frames[reduced ? STILL_FRAME : Math.min(frame, frames.length - 1)];
 
   useEffect(() => {
     if (reduced) return;
@@ -263,11 +290,19 @@ function EscalationDemo() {
     const timer = setTimeout(() => {
       // A finished ladder hands over to the next example, so the hero shows
       // the range of things people track rather than one medication forever.
-      if (frame >= frames.length - 1) {
-        setExample((e) => (e + 1) % EXAMPLES.length);
-        setFrame(0);
-      } else {
+      if (frame < frames.length - 1) {
         setFrame((f) => f + 1);
+        return;
+      }
+
+      setFrame(0);
+      if (index < order.length - 1) {
+        setIndex((i) => i + 1);
+      } else {
+        // Pass complete — deal again so a long visit does not settle into a
+        // fixed rotation.
+        setOrder(reshuffle(order[index]));
+        setIndex(0);
       }
     }, current.ms);
 
@@ -275,7 +310,7 @@ function EscalationDemo() {
       cancelAnimationFrame(raf);
       clearTimeout(timer);
     };
-  }, [frame, example, reduced, current.ms, frames.length]);
+  }, [frame, index, order, reduced, current.ms, frames.length]);
 
   const task: Task = useMemo(
     () => ({
@@ -303,7 +338,7 @@ function EscalationDemo() {
       <div className="bg-card/60 rounded-xl border p-4 backdrop-blur-sm">
         <div className="mb-3 flex items-center justify-between gap-3">
           <p
-            key={`${example}-${current.caption}`}
+            key={`${activeExample.title}-${current.caption}`}
             className={cn(
               'text-muted-foreground text-xs font-medium tracking-wide uppercase',
               !reduced && 'ping',
