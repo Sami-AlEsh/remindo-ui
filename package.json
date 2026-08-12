@@ -7,6 +7,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "build:zip": "pnpm build && node scripts/netlify-redirects.mjs && rm -f remindo-ui-netlify.zip && cd dist && zip -qr ../remindo-ui-netlify.zip . && cd .. && echo 'remindo-ui-netlify.zip ready — drag it onto the Netlify Deploys tab'",
     "lint": "oxlint",
     "preview": "vite preview",
     "api:types": "pnpm dlx openapi-typescript@7 ${VITE_API_TARGET:-http://localhost:3000}/docs-json -o src/api/schema.d.ts",
