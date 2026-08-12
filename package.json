@@ -11,6 +11,7 @@
     "lint": "oxlint",
     "preview": "vite preview",
     "api:types": "pnpm dlx openapi-typescript@7 ${VITE_API_TARGET:-http://localhost:3000}/docs-json -o src/api/schema.d.ts",
+    "release": "pnpm build && API_ORIGIN=https://remindo-api.duckdns.org node scripts/netlify-redirects.mjs && cd dist && rm -f ../remindo-ui-netlify.zip && zip -qr ../remindo-ui-netlify.zip . && echo 'zip ready: remindo-ui-netlify.zip — drag it onto Netlify → Deploys'",
     "typecheck": "tsc -b --noEmit"
   },
   "dependencies": {
