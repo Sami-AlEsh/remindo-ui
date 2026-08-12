@@ -37,6 +37,12 @@ interface Props {
   actionPending?: boolean;
   /** Pinned escalation treatment for the "Needs your attention" section. */
   attention?: boolean;
+  /**
+   * Showcase rendering — drops the edit/delete menu. The landing page renders
+   * this card for real so the marketing cannot drift from the product, but a
+   * visitor with no account has nothing to edit or delete.
+   */
+  demo?: boolean;
 }
 
 export function TaskCard({
@@ -47,6 +53,7 @@ export function TaskCard({
   onSnooze,
   actionPending,
   attention,
+  demo,
 }: Props) {
   const awaiting = isAwaitingAction(task);
   const recurring = task.recurrence !== 'once';
@@ -143,26 +150,28 @@ export function TaskCard({
         )}
       </div>
 
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="ghost" size="icon" aria-label="Task actions">
-            <MoreHorizontal className="size-4" />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
-          <DropdownMenuItem onSelect={() => onEdit(task)}>
-            <Pencil className="size-4" />
-            Edit
-          </DropdownMenuItem>
-          <DropdownMenuItem
-            variant="destructive"
-            onSelect={() => onDelete(task)}
-          >
-            <Trash2 className="size-4" />
-            Delete
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+      {!demo && (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon" aria-label="Task actions">
+              <MoreHorizontal className="size-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onSelect={() => onEdit(task)}>
+              <Pencil className="size-4" />
+              Edit
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              variant="destructive"
+              onSelect={() => onDelete(task)}
+            >
+              <Trash2 className="size-4" />
+              Delete
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      )}
     </div>
   );
 }

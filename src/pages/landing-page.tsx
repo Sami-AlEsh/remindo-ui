@@ -25,64 +25,136 @@ import { TASK_PRIORITIES } from '@/api/types';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/layout/theme-toggle';
 import { TaskCard } from '@/features/tasks/task-card';
-import { PRIORITY_LABELS, PRIORITY_POLICY } from '@/lib/labels';
+import {
+  PLATFORM_LABELS,
+  PRIORITY_LABELS,
+  PRIORITY_POLICY,
+} from '@/lib/labels';
 import { useAuth } from '@/features/auth/auth-context';
 import { usePrefersReducedMotion, useReveal } from '@/hooks/use-motion';
 
 /* --------------------------------------------------------------- content */
 
 /**
- * The hero plays the escalation ladder out in real time. Each step produces a
- * genuine Task handed to the real TaskCard, so the animation is driven by data
- * rather than by a picture of the product — it cannot advertise a card the app
- * does not actually render.
+ * The hero plays the escalation ladder out in real time, cycling through a
+ * handful of the things people actually set reminders for. Each frame produces
+ * a genuine Task handed to the real TaskCard, so the animation is driven by
+ * data rather than by a picture of the product — it cannot advertise a card the
+ * app does not actually render.
  */
-const SEQUENCE = [
+interface Example {
+  title: string;
+  content: string;
+  priority: TaskPriority;
+  recurrence: Task['recurrence'];
+  platforms: Task['platforms'];
+}
+
+const EXAMPLES: Example[] = [
   {
-    status: 'scheduled',
-    attempt: 0,
-    offsetMs: 2 * 60_000,
-    caption: 'Due in two minutes',
-    ms: 2400,
+    title: 'Take blood pressure medication',
+    content: 'Second dose. Skipping it throws the whole week off.',
+    priority: 'urgent',
+    recurrence: 'daily',
+    platforms: ['telegram'],
   },
   {
-    status: 'reminding',
-    attempt: 1,
-    offsetMs: -60_000,
-    caption: 'Telegram pings you',
-    ms: 2400,
+    title: 'Pay the credit card bill',
+    content: 'Statement is due today — after midnight it starts accruing interest.',
+    priority: 'urgent',
+    recurrence: 'monthly',
+    platforms: ['telegram', 'email'],
   },
   {
-    status: 'reminding',
-    attempt: 2,
-    offsetMs: -6 * 60_000,
-    caption: 'No answer — following up',
-    ms: 2400,
+    title: 'Pay the rent',
+    content: 'Transfer to the landlord before the 5th to avoid the late fee.',
+    priority: 'urgent',
+    recurrence: 'monthly',
+    platforms: ['telegram'],
   },
   {
-    status: 'reminding',
-    attempt: 3,
-    offsetMs: -11 * 60_000,
-    caption: 'Last call',
-    ms: 2400,
+    title: 'Take vitamin D3',
+    content: 'With breakfast — it needs fat to absorb properly.',
+    priority: 'normal',
+    recurrence: 'daily',
+    platforms: ['telegram'],
   },
   {
-    status: 'acknowledged',
-    attempt: 3,
-    offsetMs: -12 * 60_000,
-    caption: 'Confirmed — it stops',
-    ms: 3000,
+    title: 'Pay the school fees',
+    content: 'Term invoice is due. The portal closes at the end of the week.',
+    priority: 'important',
+    recurrence: 'quarterly',
+    platforms: ['telegram', 'email'],
   },
-] as const satisfies readonly {
+  {
+    title: 'Renew the car insurance',
+    content: 'Policy lapses at midnight. Renewal link is in the email from AXA.',
+    priority: 'important',
+    recurrence: 'yearly',
+    platforms: ['telegram', 'email'],
+  },
+];
+
+interface Frame {
   status: Task['status'];
   attempt: number;
   offsetMs: number;
   caption: string;
   ms: number;
-}[];
+}
+
+/**
+ * Builds the ladder for one example from the policy the API actually enforces.
+ * The count of follow-ups is not a constant here on purpose: the card prints
+ * "Attempt 2 · 2 follow-ups, every 10 min" from the same table, so a hardcoded
+ * three-step climb would contradict the card's own caption on anything that is
+ * not urgent.
+ */
+function framesFor(example: Example): Frame[] {
+  const { reminders, everyMin } = PRIORITY_POLICY[example.priority];
+  const platform = PLATFORM_LABELS[example.platforms[0]];
+
+  const frames: Frame[] = [
+    {
+      status: 'scheduled',
+      attempt: 0,
+      offsetMs: 2 * 60_000,
+      caption: 'Due in two minutes',
+      ms: 2200,
+    },
+  ];
+
+  for (let attempt = 1; attempt <= reminders; attempt++) {
+    frames.push({
+      status: 'reminding',
+      attempt,
+      // Overdue by however long the ladder has actually been climbing, so the
+      // relative time on the card agrees with the attempt number beside it.
+      offsetMs: -attempt * everyMin * 60_000,
+      caption:
+        attempt === 1
+          ? `${platform} pings you`
+          : attempt === reminders
+            ? 'Last call'
+            : 'No answer — following up',
+      ms: 2200,
+    });
+  }
+
+  frames.push({
+    status: 'acknowledged',
+    attempt: reminders,
+    offsetMs: -(reminders * everyMin + 1) * 60_000,
+    caption: 'Confirmed — it stops',
+    ms: 2600,
+  });
+
+  return frames;
+}
 
 /** Frozen here when reduced-motion is on: mid-escalation, the telling state. */
-const STILL_STEP = 2;
+const STILL_EXAMPLE = 0;
+const STILL_FRAME = 2;
 
 const STEPS = [
   {
@@ -164,57 +236,74 @@ function Reveal({
 
 /* ------------------------------------------------------- escalation demo */
 
+const PRIO_DOT: Record<TaskPriority, string> = {
+  normal: 'bg-prio-normal',
+  important: 'bg-prio-important',
+  urgent: 'bg-prio-urgent',
+};
+
 function EscalationDemo() {
   const reduced = usePrefersReducedMotion();
-  const [step, setStep] = useState(0);
+  const [example, setExample] = useState(0);
+  const [frame, setFrame] = useState(0);
   const [filled, setFilled] = useState(false);
 
-  const current = SEQUENCE[reduced ? STILL_STEP : step];
+  const activeExample =
+    EXAMPLES[reduced ? STILL_EXAMPLE : example % EXAMPLES.length];
+  const frames = useMemo(() => framesFor(activeExample), [activeExample]);
+  const current = frames[reduced ? STILL_FRAME : Math.min(frame, frames.length - 1)];
 
   useEffect(() => {
     if (reduced) return;
 
-    // Snap the bar back, then let it run — two renders per step rather than
-    // re-rendering the whole card on every animation frame.
+    // Snap the bar back, then let it run — two renders per frame rather than
+    // re-rendering the whole card on every animation tick.
     setFilled(false);
     const raf = requestAnimationFrame(() => setFilled(true));
-    const timer = setTimeout(
-      () => setStep((s) => (s + 1) % SEQUENCE.length),
-      current.ms,
-    );
+    const timer = setTimeout(() => {
+      // A finished ladder hands over to the next example, so the hero shows
+      // the range of things people track rather than one medication forever.
+      if (frame >= frames.length - 1) {
+        setExample((e) => (e + 1) % EXAMPLES.length);
+        setFrame(0);
+      } else {
+        setFrame((f) => f + 1);
+      }
+    }, current.ms);
 
     return () => {
       cancelAnimationFrame(raf);
       clearTimeout(timer);
     };
-  }, [step, reduced, current.ms]);
+  }, [frame, example, reduced, current.ms, frames.length]);
 
   const task: Task = useMemo(
     () => ({
       id: 'hero',
-      title: 'Take blood pressure medication',
-      content: 'Second dose. Skipping it throws the whole week off.',
+      title: activeExample.title,
+      content: activeExample.content,
       status: current.status,
-      priority: 'urgent',
-      platforms: ['telegram'],
-      recurrence: 'daily',
+      priority: activeExample.priority,
+      platforms: activeExample.platforms,
+      recurrence: activeExample.recurrence,
       dueDate: new Date(Date.now() + current.offsetMs).toISOString(),
       occurrenceSeq: 1,
       attempt: current.attempt,
       snoozeCount: 0,
     }),
-    [current],
+    [activeExample, current],
   );
 
   const noop = () => undefined;
-  const total = PRIORITY_POLICY.urgent.reminders;
+  const total = PRIORITY_POLICY[activeExample.priority].reminders;
+  const accent = PRIO_DOT[activeExample.priority];
 
   return (
     <div className="aurora">
       <div className="bg-card/60 rounded-xl border p-4 backdrop-blur-sm">
         <div className="mb-3 flex items-center justify-between gap-3">
           <p
-            key={current.caption}
+            key={`${example}-${current.caption}`}
             className={cn(
               'text-muted-foreground text-xs font-medium tracking-wide uppercase',
               !reduced && 'ping',
@@ -223,14 +312,14 @@ function EscalationDemo() {
             {current.caption}
           </p>
 
-          {/* Attempt beads — how far up the ladder we are, at a glance. */}
+          {/* Attempt beads — how far up this task's own ladder we are. */}
           <div className="flex items-center gap-1.5" aria-hidden>
             {Array.from({ length: total }, (_, i) => (
               <span
                 key={i}
                 className={cn(
                   'size-1.5 rounded-full transition-colors duration-300',
-                  i < current.attempt ? 'bg-prio-urgent' : 'bg-border',
+                  i < current.attempt ? accent : 'bg-border',
                 )}
               />
             ))}
@@ -239,7 +328,10 @@ function EscalationDemo() {
 
         <TaskCard
           task={task}
-          attention={current.status === 'reminding'}
+          demo
+          attention={
+            current.status === 'reminding' && activeExample.priority === 'urgent'
+          }
           onEdit={noop}
           onDelete={noop}
           onConfirm={noop}
@@ -252,7 +344,7 @@ function EscalationDemo() {
               'countdown-fill h-full rounded-full',
               current.status === 'acknowledged'
                 ? 'bg-status-ack-foreground'
-                : 'bg-prio-urgent',
+                : accent,
             )}
             data-reset={!filled}
             style={{
