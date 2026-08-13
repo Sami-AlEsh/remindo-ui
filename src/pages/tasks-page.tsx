@@ -1,10 +1,20 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { BellRing, Inbox, PauseCircle, Plug, Plus } from 'lucide-react';
+import {
+  BellRing,
+  Inbox,
+  PauseCircle,
+  Plug,
+  Plus,
+  Search,
+  SearchX,
+  X,
+} from 'lucide-react';
 
 import type { Task, TaskListQuery, TaskPriority, TaskStatus } from '@/api/types';
 import { TASK_PRIORITIES, TASK_STATUSES, isAwaitingAction } from '@/api/types';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import {
@@ -22,6 +32,7 @@ import {
   useTaskAction,
   useTaskList,
 } from '@/features/tasks/use-tasks';
+import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import { usePlatforms } from '@/features/platforms/use-platforms';
 import { useSubscription } from '@/features/billing/use-billing';
 import { UpgradeDialog } from '@/features/billing/upgrade-dialog';
@@ -29,6 +40,7 @@ import { UpgradeDialog } from '@/features/billing/upgrade-dialog';
 const ALL = 'all';
 
 export function TasksPage() {
+  const [search, setSearch] = useState('');
   const [status, setStatus] = useState<TaskStatus | typeof ALL>(ALL);
   const [priority, setPriority] = useState<TaskPriority | typeof ALL>(ALL);
   const [page, setPage] = useState(1);
@@ -48,16 +60,21 @@ export function TasksPage() {
   const activeTasks = subscription?.usage.activeTasks ?? 0;
   const overCap = maxActiveTasks !== null && activeTasks > maxActiveTasks;
 
+  // Typing is local and instant; only the settled term reaches the server, so
+  // we don't spawn a request (and a cache entry) per keystroke.
+  const debouncedSearch = useDebouncedValue(search.trim());
+
   const query: TaskListQuery = useMemo(
     () => ({
       page,
       limit: 20,
       sortBy: 'dueDate',
       sortOrder: 'asc',
+      ...(debouncedSearch ? { q: debouncedSearch } : {}),
       ...(status === ALL ? {} : { status }),
       ...(priority === ALL ? {} : { priority }),
     }),
-    [page, status, priority],
+    [page, debouncedSearch, status, priority],
   );
 
   const { data, isPending } = useTaskList(query);
@@ -65,6 +82,7 @@ export function TasksPage() {
   const snoozeAction = useTaskAction('snooze');
   const deleteTask = useDeleteTask();
 
+  const isSearching = debouncedSearch !== '';
   const tasks = data?.items ?? [];
   const awaiting = tasks.filter(isAwaitingAction);
   const rest = tasks.filter((task) => !isAwaitingAction(task));
@@ -100,6 +118,43 @@ export function TasksPage() {
           <Plus className="size-4" />
           New task
         </Button>
+      </div>
+
+      {/* Above the sections, not inside the "All tasks" toolbar: the term
+          filters the attention band too, so scoping it visually to the lower
+          list would misrepresent what it does. */}
+      <div className="relative">
+        <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2" />
+        <Input
+          type="text"
+          value={search}
+          onChange={(event) => {
+            setSearch(event.target.value);
+            // A different term means a different result set — page 3 of the
+            // previous one is meaningless.
+            setPage(1);
+          }}
+          placeholder="Search tasks by title or description"
+          aria-label="Search tasks by title or description"
+          // Mirrors the server's MaxLength(100) so a long paste is trimmed
+          // client-side instead of coming back as a 400.
+          maxLength={100}
+          className="h-9 pl-8 pr-9"
+        />
+        {search !== '' && (
+          <Button
+            variant="ghost"
+            size="icon-xs"
+            aria-label="Clear search"
+            className="absolute top-1/2 right-1.5 -translate-y-1/2"
+            onClick={() => {
+              setSearch('');
+              setPage(1);
+            }}
+          >
+            <X className="size-3.5" />
+          </Button>
+        )}
       </div>
 
       {!hasLinkedPlatform && (
@@ -248,7 +303,29 @@ export function TasksPage() {
           </div>
         )}
 
-        {!isPending && tasks.length === 0 && (
+        {!isPending && tasks.length === 0 && isSearching && (
+          <div className="text-muted-foreground flex flex-col items-center gap-3 rounded-lg border border-dashed py-14 text-center">
+            <SearchX className="size-8" />
+            <div>
+              <p className="text-foreground font-medium">No matching tasks</p>
+              <p className="text-sm break-words">
+                Nothing matches “{debouncedSearch}”.
+              </p>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setSearch('');
+                setPage(1);
+              }}
+            >
+              Clear search
+            </Button>
+          </div>
+        )}
+
+        {!isPending && tasks.length === 0 && !isSearching && (
           <div className="text-muted-foreground flex flex-col items-center gap-3 rounded-lg border border-dashed py-14 text-center">
             <Inbox className="size-8" />
             <div>

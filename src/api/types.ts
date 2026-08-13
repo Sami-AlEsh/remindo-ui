@@ -45,6 +45,8 @@ export interface TaskListQuery {
   [key: string]: string | number | undefined;
   page?: number;
   limit?: number;
+  /** Case-insensitive substring match against the task title or content. */
+  q?: string;
   status?: TaskStatus;
   priority?: TaskPriority;
   sortBy?: 'dueDate' | 'priority' | 'createdAt';
