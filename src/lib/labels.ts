@@ -25,10 +25,34 @@ export const RECURRENCE_LABELS: Record<TaskRecurrence, string> = {
   once: 'One time',
   daily: 'Daily',
   weekly: 'Weekly',
+  days_of_week: 'Specific days',
   monthly: 'Monthly',
   quarterly: 'Quarterly',
   yearly: 'Yearly',
 };
+
+/** Sunday-first, matching both cron and Date#getDay. */
+export const WEEKDAYS = [
+  { value: 0, short: 'Sun' },
+  { value: 1, short: 'Mon' },
+  { value: 2, short: 'Tue' },
+  { value: 3, short: 'Wed' },
+  { value: 4, short: 'Thu' },
+  { value: 5, short: 'Fri' },
+  { value: 6, short: 'Sat' },
+] as const;
+
+/** e.g. [1, 2] → "Mon, Tue". Expects weekday numbers, any order. */
+export function describeWeekdays(days: readonly number[]): string {
+  const sorted = [...new Set(days)].sort((a, b) => a - b);
+  if (sorted.length === 0) return '';
+  // Listing all seven would overflow a card for no added meaning.
+  if (sorted.length === WEEKDAYS.length) return 'Every day';
+  return sorted
+    .map((day) => WEEKDAYS.find((w) => w.value === day)?.short)
+    .filter(Boolean)
+    .join(', ');
+}
 
 export const PLATFORM_LABELS: Record<Platform, string> = {
   telegram: 'Telegram',

@@ -321,6 +321,7 @@ function EscalationDemo() {
       priority: activeExample.priority,
       platforms: activeExample.platforms,
       recurrence: activeExample.recurrence,
+      recurrenceDays: [],
       dueDate: new Date(Date.now() + current.offsetMs).toISOString(),
       occurrenceSeq: 1,
       attempt: current.attempt,

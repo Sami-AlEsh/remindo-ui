@@ -30,27 +30,40 @@ import {
   PLATFORM_LABELS,
   PRIORITY_LABELS,
   RECURRENCE_LABELS,
+  WEEKDAYS,
   describePolicy,
+  describeWeekdays,
 } from '@/lib/labels';
 import {
+  crossesUtcDay,
   defaultDueDateValue,
   fromDateTimeLocalValue,
+  localToUtcWeekday,
   toDateTimeLocalValue,
+  utcToLocalWeekday,
 } from '@/lib/datetime';
 import { UpgradeDialog } from '@/features/billing/upgrade-dialog';
 import { useSubscription } from '@/features/billing/use-billing';
 import { useCreateTask, useUpdateTask } from './use-tasks';
 
-const taskSchema = z.object({
-  title: z.string().min(1, 'Give the task a title').max(200),
-  content: z.string().min(1, 'Describe what to do').max(2000),
-  priority: z.enum(TASK_PRIORITIES),
-  recurrence: z.enum(TASK_RECURRENCES),
-  dueDate: z.string().refine((value) => new Date(value) > new Date(), {
-    message: 'Pick a time in the future',
-  }),
-  platforms: z.array(z.string()).min(1, 'Choose at least one platform'),
-});
+const taskSchema = z
+  .object({
+    title: z.string().min(1, 'Give the task a title').max(200),
+    content: z.string().min(1, 'Describe what to do').max(2000),
+    priority: z.enum(TASK_PRIORITIES),
+    recurrence: z.enum(TASK_RECURRENCES),
+    /** Local weekdays; converted to UTC on submit. */
+    recurrenceDays: z.array(z.number()),
+    dueDate: z.string().refine((value) => new Date(value) > new Date(), {
+      message: 'Pick a time in the future',
+    }),
+    platforms: z.array(z.string()).min(1, 'Choose at least one platform'),
+  })
+  .refine(
+    (values) =>
+      values.recurrence !== 'days_of_week' || values.recurrenceDays.length > 0,
+    { message: 'Pick at least one day', path: ['recurrenceDays'] },
+  );
 
 type TaskFormValues = z.infer<typeof taskSchema>;
 
@@ -89,6 +102,7 @@ export function TaskFormDialog({
       content: '',
       priority: 'normal',
       recurrence: 'once',
+      recurrenceDays: [],
       dueDate: defaultDueDateValue(),
       platforms: linkedPlatforms.slice(0, 1),
     },
@@ -103,6 +117,10 @@ export function TaskFormDialog({
             content: task.content,
             priority: task.priority,
             recurrence: task.recurrence,
+            // Stored UTC → the local days the user originally picked.
+            recurrenceDays: (task.recurrenceDays ?? [])
+              .map((day) => utcToLocalWeekday(day, task.dueDate))
+              .sort((a, b) => a - b),
             dueDate: toDateTimeLocalValue(task.dueDate),
             platforms: task.platforms,
           }
@@ -111,6 +129,7 @@ export function TaskFormDialog({
             content: '',
             priority: 'normal',
             recurrence: 'once',
+            recurrenceDays: [],
             dueDate: defaultDueDateValue(),
             platforms: linkedPlatforms.slice(0, 1),
           },
@@ -120,6 +139,7 @@ export function TaskFormDialog({
   const selectedPlatforms = form.watch('platforms');
   const priority = form.watch('priority');
   const recurrence = form.watch('recurrence');
+  const recurrenceDays = form.watch('recurrenceDays');
   const dueDate = form.watch('dueDate');
 
   function togglePlatform(platform: Platform) {
@@ -129,12 +149,26 @@ export function TaskFormDialog({
     form.setValue('platforms', next, { shouldValidate: true });
   }
 
+  function toggleWeekday(day: number) {
+    const next = recurrenceDays.includes(day)
+      ? recurrenceDays.filter((d) => d !== day)
+      : [...recurrenceDays, day].sort((a, b) => a - b);
+    form.setValue('recurrenceDays', next, { shouldValidate: true });
+  }
+
   async function onSubmit(values: TaskFormValues) {
     const payload = {
       title: values.title,
       content: values.content,
       priority: values.priority,
       recurrence: values.recurrence,
+      // The API stores UTC weekdays; cron has no timezone to carry ours.
+      recurrenceDays:
+        values.recurrence === 'days_of_week'
+          ? values.recurrenceDays
+              .map((day) => localToUtcWeekday(day, values.dueDate))
+              .sort((a, b) => a - b)
+          : [],
       dueDate: fromDateTimeLocalValue(values.dueDate),
       platforms: values.platforms as Platform[],
     };
@@ -148,11 +182,27 @@ export function TaskFormDialog({
     }
   }
 
+  const hasDueDate = Boolean(dueDate) && !Number.isNaN(Date.parse(dueDate));
+
   const utcHint =
-    recurrence !== 'once' && dueDate && !Number.isNaN(Date.parse(dueDate))
+    recurrence !== 'once' && hasDueDate
       ? `Recurring tasks are anchored in UTC: this fires at ${new Date(dueDate)
           .toISOString()
           .slice(11, 16)} UTC every cycle.`
+      : null;
+
+  // At this time of day the UTC weekday differs from the local one. Spell out
+  // what actually gets stored, or the saved task reads as a day off. Skipped
+  // when the whole week is picked, since the shift then changes nothing.
+  const weekdayShiftHint =
+    recurrence === 'days_of_week' &&
+    hasDueDate &&
+    recurrenceDays.length > 0 &&
+    recurrenceDays.length < WEEKDAYS.length &&
+    crossesUtcDay(dueDate)
+      ? `Your ${describeWeekdays(recurrenceDays)} is ${describeWeekdays(
+          recurrenceDays.map((day) => localToUtcWeekday(day, dueDate)),
+        )} in UTC — reminders still arrive on the days you picked, local time.`
       : null;
 
   return (
@@ -229,6 +279,35 @@ export function TaskFormDialog({
               </Select>
             </div>
           </div>
+
+          {recurrence === 'days_of_week' && (
+            <div className="flex flex-col gap-2">
+              <Label>Repeat on</Label>
+              <div className="flex flex-wrap gap-1.5">
+                {WEEKDAYS.map(({ value, short }) => {
+                  const selected = recurrenceDays.includes(value);
+                  return (
+                    <Button
+                      key={value}
+                      type="button"
+                      size="sm"
+                      variant={selected ? 'default' : 'outline'}
+                      aria-pressed={selected}
+                      className="w-13"
+                      onClick={() => toggleWeekday(value)}
+                    >
+                      {short}
+                    </Button>
+                  );
+                })}
+              </div>
+              {form.formState.errors.recurrenceDays && (
+                <p className="text-destructive text-xs">
+                  {form.formState.errors.recurrenceDays.message}
+                </p>
+              )}
+            </div>
+          )}
 
           <div className="flex flex-col gap-2">
             <Label htmlFor="priority">Importance</Label>
@@ -333,9 +412,12 @@ export function TaskFormDialog({
             </Alert>
           )}
 
-          {utcHint && (
+          {(utcHint || weekdayShiftHint) && (
             <Alert>
-              <AlertDescription>{utcHint}</AlertDescription>
+              <AlertDescription className="flex flex-col gap-1">
+                {utcHint && <span>{utcHint}</span>}
+                {weekdayShiftHint && <span>{weekdayShiftHint}</span>}
+              </AlertDescription>
             </Alert>
           )}
 

@@ -71,6 +71,7 @@ export const TASK_RECURRENCES = [
   'once',
   'daily',
   'weekly',
+  'days_of_week',
   'monthly',
   'quarterly',
   'yearly',

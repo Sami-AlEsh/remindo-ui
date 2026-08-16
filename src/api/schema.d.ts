@@ -495,7 +495,15 @@ export interface components {
              */
             dueDate: string;
             /** @enum {string} */
-            recurrence: "once" | "daily" | "weekly" | "monthly" | "quarterly" | "yearly";
+            recurrence: "once" | "daily" | "weekly" | "days_of_week" | "monthly" | "quarterly" | "yearly";
+            /**
+             * @description UTC weekdays, 0 = Sunday … 6 = Saturday. Required when recurrence is days_of_week; ignored (and stored empty) for every other recurrence.
+             * @example [
+             *       1,
+             *       2
+             *     ]
+             */
+            recurrenceDays?: number[];
         };
         TaskResponseDto: {
             id: string;
@@ -507,7 +515,9 @@ export interface components {
             priority: "normal" | "important" | "urgent";
             platforms: ("telegram" | "whatsapp" | "email" | "sms")[];
             /** @enum {string} */
-            recurrence: "once" | "daily" | "weekly" | "monthly" | "quarterly" | "yearly";
+            recurrence: "once" | "daily" | "weekly" | "days_of_week" | "monthly" | "quarterly" | "yearly";
+            /** @description UTC weekdays (0 = Sunday) for days_of_week tasks; empty otherwise */
+            recurrenceDays: number[];
             /** Format: date-time */
             dueDate: string;
             occurrenceSeq: number;
@@ -544,7 +554,15 @@ export interface components {
              */
             dueDate?: string;
             /** @enum {string} */
-            recurrence?: "once" | "daily" | "weekly" | "monthly" | "quarterly" | "yearly";
+            recurrence?: "once" | "daily" | "weekly" | "days_of_week" | "monthly" | "quarterly" | "yearly";
+            /**
+             * @description UTC weekdays, 0 = Sunday … 6 = Saturday. Required when recurrence is days_of_week; ignored (and stored empty) for every other recurrence.
+             * @example [
+             *       1,
+             *       2
+             *     ]
+             */
+            recurrenceDays?: number[];
         };
         TaskActionResponseDto: {
             /** @enum {string} */
@@ -987,6 +1005,8 @@ export interface operations {
             query?: {
                 page?: number;
                 limit?: number;
+                /** @description Case-insensitive substring match against the task title or content. */
+                q?: string;
                 status?: "scheduled" | "reminding" | "snoozed" | "acknowledged" | "missed";
                 priority?: "normal" | "important" | "urgent";
                 sortBy?: "dueDate" | "priority" | "createdAt";

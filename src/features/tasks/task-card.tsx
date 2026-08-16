@@ -23,8 +23,14 @@ import {
   PRIORITY_POLICY,
   RECURRENCE_LABELS,
   describePolicy,
+  describeWeekdays,
 } from '@/lib/labels';
-import { formatLocal, formatRelative, formatUtcTime } from '@/lib/datetime';
+import {
+  formatLocal,
+  formatRelative,
+  formatUtcTime,
+  utcToLocalWeekday,
+} from '@/lib/datetime';
 import { isAwaitingAction } from '@/api/types';
 import { PRIORITY_ACCENT, PriorityPill, StatusBadge } from './task-badges';
 
@@ -58,6 +64,11 @@ export function TaskCard({
   const awaiting = isAwaitingAction(task);
   const recurring = task.recurrence !== 'once';
   const done = task.status === 'acknowledged';
+  const weekdays = describeWeekdays(
+    (task.recurrenceDays ?? []).map((day) =>
+      utcToLocalWeekday(day, task.dueDate),
+    ),
+  );
 
   return (
     <div
@@ -95,7 +106,10 @@ export function TaskCard({
           {recurring && (
             <span className="text-muted-foreground flex items-center gap-1.5 text-xs">
               <Repeat className="size-3.5" />
-              {RECURRENCE_LABELS[task.recurrence]}
+              {/* Days are stored in UTC; show them back in the user's own. */}
+              {task.recurrence === 'days_of_week' && weekdays
+                ? weekdays
+                : RECURRENCE_LABELS[task.recurrence]}
             </span>
           )}
           <span className="text-muted-foreground ml-auto flex items-center gap-1.5 text-xs tabular-nums">

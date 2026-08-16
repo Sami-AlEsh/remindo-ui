@@ -36,6 +36,7 @@ function demoTask(over: Partial<Task> = {}): Task {
     priority: 'normal',
     platforms: ['telegram'],
     recurrence: 'once',
+    recurrenceDays: [],
     dueDate: new Date(Date.parse('2026-08-07T09:00:00Z') + HOUR * 2).toISOString(),
     occurrenceSeq: 1,
     attempt: 0,
