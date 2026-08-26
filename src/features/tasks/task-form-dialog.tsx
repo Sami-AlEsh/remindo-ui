@@ -238,13 +238,6 @@ export function TaskFormDialog({
             : `Every ${describeWeekdays(recurrenceDays)} at ${formatLocalTime(dueDate)}.`
           : null;
 
-  const utcHint =
-    recurrence !== 'once' && hasDueDate
-      ? `Recurring tasks are anchored in UTC: this fires at ${new Date(dueDate)
-          .toISOString()
-          .slice(11, 16)} UTC every cycle.`
-      : null;
-
   // At this time of day the UTC weekday differs from the local one. Spell out
   // what actually gets stored, or the saved task reads as a day off. Skipped
   // when the whole week is picked, since the shift then changes nothing.
@@ -492,12 +485,9 @@ export function TaskFormDialog({
             </Alert>
           )}
 
-          {(utcHint || weekdayShiftHint) && (
+          {weekdayShiftHint && (
             <Alert>
-              <AlertDescription className="flex flex-col gap-1">
-                {utcHint && <span>{utcHint}</span>}
-                {weekdayShiftHint && <span>{weekdayShiftHint}</span>}
-              </AlertDescription>
+              <AlertDescription>{weekdayShiftHint}</AlertDescription>
             </Alert>
           )}
 
