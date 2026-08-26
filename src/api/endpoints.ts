@@ -4,10 +4,12 @@ import type {
   ChangePasswordInput,
   CheckoutResponse,
   CreateTaskInput,
+  ForgotPasswordInput,
   LinkEmailResponse,
   LinkPlatformResponse,
   PaymentSyncResponse,
   Product,
+  ResetPasswordInput,
   Subscription,
   TaskActionPreview,
   VerifyEmailResponse,
@@ -49,6 +51,25 @@ export const authApi = {
       anonymous: true,
     });
     setAccessToken(null);
+  },
+
+  /** Resolves for any well-formed address, registered or not. */
+  forgotPassword(input: ForgotPasswordInput): Promise<void> {
+    return apiRequest<void>('/auth/forgot-password', {
+      method: 'POST',
+      body: input,
+      anonymous: true,
+    });
+  },
+
+  resetPassword(input: ResetPasswordInput): Promise<void> {
+    return apiRequest<void>('/auth/reset-password', {
+      method: 'POST',
+      body: input,
+      // anonymous also keeps a dead token off the 401 refresh-and-session-lost
+      // path, so it can't sign out someone who is already logged in.
+      anonymous: true,
+    });
   },
 
   changePassword(input: ChangePasswordInput): Promise<void> {

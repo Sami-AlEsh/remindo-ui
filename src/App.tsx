@@ -10,6 +10,8 @@ import { PricingPage } from '@/pages/pricing-page';
 import { BillingReturnPage } from '@/pages/billing-return-page';
 import { LoginPage } from '@/pages/login-page';
 import { SignUpPage } from '@/pages/sign-up-page';
+import { ForgotPasswordPage } from '@/pages/forgot-password-page';
+import { ResetPasswordPage } from '@/pages/reset-password-page';
 import { VerifyEmailPage } from '@/pages/verify-email-page';
 import { ReminderActionPage } from '@/pages/reminder-action-page';
 import { TasksPage } from '@/pages/tasks-page';
@@ -38,7 +40,9 @@ export default function App() {
           <Route path="/pricing" element={<PricingPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/signup" element={<SignUpPage />} />
-          {/* Reached from links in emails, so both are public. */}
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          {/* Reached from links in emails and chat, so these are public. */}
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
           <Route path="/verify-email" element={<VerifyEmailPage />} />
           <Route path="/r/:token" element={<ReminderActionPage />} />
           {import.meta.env.DEV && (

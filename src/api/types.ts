@@ -15,6 +15,8 @@ export type LoginResponse = Schemas['LoginResponseDto'];
 export type SignUpInput = Schemas['SignUpDto'];
 export type LoginInput = Schemas['LogInDto'];
 export type ChangePasswordInput = Schemas['ChangePasswordDto'];
+export type ForgotPasswordInput = Schemas['ForgotPasswordDto'];
+export type ResetPasswordInput = Schemas['ResetPasswordDto'];
 export type UpdateUserInput = Schemas['UpdateUserDto'];
 
 export type Subscription = Schemas['SubscriptionResponseDto'];

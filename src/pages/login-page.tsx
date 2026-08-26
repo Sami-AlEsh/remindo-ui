@@ -87,7 +87,15 @@ export function LoginPage() {
           </div>
 
           <div className="flex flex-col gap-2">
-            <Label htmlFor="password">Password</Label>
+            <div className="flex items-baseline justify-between gap-2">
+              <Label htmlFor="password">Password</Label>
+              <Link
+                to="/forgot-password"
+                className="text-muted-foreground hover:text-foreground text-xs underline"
+              >
+                Forgot your password?
+              </Link>
+            </div>
             <PasswordInput
               id="password"
               autoComplete="current-password"
