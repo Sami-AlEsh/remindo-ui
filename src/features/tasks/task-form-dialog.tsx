@@ -266,7 +266,7 @@ export function TaskFormDialog({
                   )
                 }
               >
-                <SelectTrigger id="recurrence">
+                <SelectTrigger id="recurrence" className="w-full">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -317,7 +317,7 @@ export function TaskFormDialog({
                 form.setValue('priority', value as TaskFormValues['priority'])
               }
             >
-              <SelectTrigger id="priority">
+              <SelectTrigger id="priority" className="w-full">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
