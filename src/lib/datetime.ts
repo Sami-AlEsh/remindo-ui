@@ -42,6 +42,40 @@ export function fromDateTimeLocalValue(value: string): string {
 }
 
 /**
+ * The local `HH:mm` of a moment, for `<input type="time">`. Accepts an ISO
+ * instant or an existing `datetime-local` value — the latter round-trips,
+ * since both are read back through the local getters.
+ */
+export function toTimeValue(value: string): string {
+  return toDateTimeLocalValue(value).slice(11, 16);
+}
+
+/** The full local weekday name, e.g. "Wednesday". */
+export function formatLocalWeekday(value: string): string {
+  return format(new Date(value), 'EEEE');
+}
+
+/**
+ * The next moment a local `HH:mm` comes round, as a `datetime-local` value:
+ * today while it is still ahead, tomorrow once it has passed.
+ *
+ * `daily` and `days_of_week` build their cron pattern from the due date's time
+ * of day alone, so the UI stops asking for a date — but the API still requires
+ * one in the future, and uses it as the gate that suppresses any tick before
+ * it. The next occurrence of the chosen time is the earliest date that opens
+ * that gate without delaying the first reminder past its natural tick.
+ */
+export function nextOccurrenceOfTime(time: string): string {
+  const match = /^(\d{1,2}):(\d{2})$/.exec(time);
+  if (!match) return '';
+
+  const next = new Date();
+  next.setHours(Number(match[1]), Number(match[2]), 0, 0);
+  if (next.getTime() <= Date.now()) next.setDate(next.getDate() + 1);
+  return toDateTimeLocalValue(next.toISOString());
+}
+
+/**
  * How far the due date's UTC weekday sits from its local one: -1, 0 or +1.
  * Accepts any parseable date — a `datetime-local` value or an ISO string.
  */

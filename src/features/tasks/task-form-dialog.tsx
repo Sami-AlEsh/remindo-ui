@@ -37,9 +37,13 @@ import {
 import {
   crossesUtcDay,
   defaultDueDateValue,
+  formatLocalTime,
+  formatLocalWeekday,
   fromDateTimeLocalValue,
   localToUtcWeekday,
+  nextOccurrenceOfTime,
   toDateTimeLocalValue,
+  toTimeValue,
   utcToLocalWeekday,
 } from '@/lib/datetime';
 import { UpgradeDialog } from '@/features/billing/upgrade-dialog';
@@ -66,6 +70,16 @@ const taskSchema = z
   );
 
 type TaskFormValues = z.infer<typeof taskSchema>;
+
+/**
+ * Recurrences whose cron pattern is built from the due date's time of day
+ * alone: `daily` fires every day, and `days_of_week` takes its days from the
+ * weekday picker, so neither reaches the date part. Asking for a date there
+ * only invites the reader to believe it means something.
+ */
+function isTimeOnly(recurrence: TaskFormValues['recurrence']): boolean {
+  return recurrence === 'daily' || recurrence === 'days_of_week';
+}
 
 interface Props {
   open: boolean;
@@ -121,7 +135,13 @@ export function TaskFormDialog({
             recurrenceDays: (task.recurrenceDays ?? [])
               .map((day) => utcToLocalWeekday(day, task.dueDate))
               .sort((a, b) => a - b),
-            dueDate: toDateTimeLocalValue(task.dueDate),
+            // A recurring task's due date is its start gate, and the API
+            // never advances it — so an established task's sits in the past.
+            // Left as-is under a time-only field, "pick a time in the future"
+            // would fire against a date the reader cannot see.
+            dueDate: isTimeOnly(task.recurrence)
+              ? nextOccurrenceOfTime(toTimeValue(task.dueDate))
+              : toDateTimeLocalValue(task.dueDate),
             platforms: task.platforms,
           }
         : {
@@ -134,7 +154,14 @@ export function TaskFormDialog({
             platforms: linkedPlatforms.slice(0, 1),
           },
     );
-  }, [open, task, linkedPlatforms, form]);
+    // Deliberately not keyed on `linkedPlatforms`: callers derive it with
+    // .filter().map() over query data, so it is a fresh array on every render
+    // of theirs — and with it in the dep list any refetch behind an open
+    // dialog resets the form under the user's hands. Opening (and which task)
+    // is what should seed the fields; the value read above is the one current
+    // at that moment.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, task, form]);
 
   const selectedPlatforms = form.watch('platforms');
   const priority = form.watch('priority');
@@ -147,6 +174,17 @@ export function TaskFormDialog({
       ? selectedPlatforms.filter((p) => p !== platform)
       : [...selectedPlatforms, platform];
     form.setValue('platforms', next, { shouldValidate: true });
+  }
+
+  function changeRecurrence(next: TaskFormValues['recurrence']) {
+    form.setValue('recurrence', next, { shouldValidate: true });
+    // The date part is about to stop being shown, so re-anchor it rather than
+    // leave a date the reader picked earlier silently gating the first fire.
+    if (isTimeOnly(next)) {
+      form.setValue('dueDate', nextOccurrenceOfTime(toTimeValue(dueDate)), {
+        shouldValidate: true,
+      });
+    }
   }
 
   function toggleWeekday(day: number) {
@@ -183,6 +221,22 @@ export function TaskFormDialog({
   }
 
   const hasDueDate = Boolean(dueDate) && !Number.isNaN(Date.parse(dueDate));
+  const timeOnly = isTimeOnly(recurrence);
+
+  // Says back what the API's cron pattern will do, in the local terms the
+  // reader picked it in. Only for the recurrences whose field no longer shows
+  // a date, plus `weekly`, where the day is implied by one rather than stated.
+  const cadenceHint = !hasDueDate
+    ? null
+    : recurrence === 'daily'
+      ? `Every day at ${formatLocalTime(dueDate)}.`
+      : recurrence === 'weekly'
+        ? `Every ${formatLocalWeekday(dueDate)} at ${formatLocalTime(dueDate)}.`
+        : recurrence === 'days_of_week' && recurrenceDays.length > 0
+          ? recurrenceDays.length === WEEKDAYS.length
+            ? `Every day at ${formatLocalTime(dueDate)}.`
+            : `Every ${describeWeekdays(recurrenceDays)} at ${formatLocalTime(dueDate)}.`
+          : null;
 
   const utcHint =
     recurrence !== 'once' && hasDueDate
@@ -240,30 +294,15 @@ export function TaskFormDialog({
             )}
           </div>
 
+          {/* Repeats leads: it decides whether the field beside it asks for a
+              date at all, and a control should not change shape behind you. */}
           <div className="grid grid-cols-2 gap-3">
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="dueDate">Remind me on</Label>
-              <Input
-                id="dueDate"
-                type="datetime-local"
-                {...form.register('dueDate')}
-              />
-              {form.formState.errors.dueDate && (
-                <p className="text-destructive text-xs">
-                  {form.formState.errors.dueDate.message}
-                </p>
-              )}
-            </div>
-
             <div className="flex flex-col gap-2">
               <Label htmlFor="recurrence">Repeats</Label>
               <Select
                 value={recurrence}
                 onValueChange={(value) =>
-                  form.setValue(
-                    'recurrence',
-                    value as TaskFormValues['recurrence'],
-                  )
+                  changeRecurrence(value as TaskFormValues['recurrence'])
                 }
               >
                 <SelectTrigger id="recurrence" className="w-full">
@@ -277,6 +316,43 @@ export function TaskFormDialog({
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="dueDate">
+                {timeOnly ? 'Remind me at' : 'Remind me on'}
+              </Label>
+              {/* Separate keys: swapping a registered field for a controlled
+                  one on a single DOM node trips React's uncontrolled warning.
+                  The time input writes the whole due date, keeping the date
+                  part the API requires out of the reader's way. */}
+              {timeOnly ? (
+                <Input
+                  key="time"
+                  id="dueDate"
+                  type="time"
+                  value={toTimeValue(dueDate)}
+                  onChange={(event) =>
+                    form.setValue(
+                      'dueDate',
+                      nextOccurrenceOfTime(event.target.value),
+                      { shouldValidate: true },
+                    )
+                  }
+                />
+              ) : (
+                <Input
+                  key="datetime"
+                  id="dueDate"
+                  type="datetime-local"
+                  {...form.register('dueDate')}
+                />
+              )}
+              {form.formState.errors.dueDate && (
+                <p className="text-destructive text-xs">
+                  {form.formState.errors.dueDate.message}
+                </p>
+              )}
             </div>
           </div>
 
@@ -307,6 +383,10 @@ export function TaskFormDialog({
                 </p>
               )}
             </div>
+          )}
+
+          {cadenceHint && (
+            <p className="text-muted-foreground -mt-2 text-xs">{cadenceHint}</p>
           )}
 
           <div className="flex flex-col gap-2">
