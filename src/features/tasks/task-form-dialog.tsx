@@ -242,7 +242,7 @@ export function TaskFormDialog({
 
           <div className="grid grid-cols-2 gap-3">
             <div className="flex flex-col gap-2">
-              <Label htmlFor="dueDate">Due</Label>
+              <Label htmlFor="dueDate">Remind me on</Label>
               <Input
                 id="dueDate"
                 type="datetime-local"
