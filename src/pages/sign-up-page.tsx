@@ -8,6 +8,7 @@ import { z } from 'zod';
 import { ApiError } from '@/api/errors';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { PasswordInput } from '@/components/ui/password-input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useAuth } from '@/features/auth/auth-context';
@@ -129,9 +130,8 @@ export function SignUpPage() {
 
           <div className="flex flex-col gap-2">
             <Label htmlFor="password">Password</Label>
-            <Input
+            <PasswordInput
               id="password"
-              type="password"
               autoComplete="new-password"
               {...form.register('password')}
             />
